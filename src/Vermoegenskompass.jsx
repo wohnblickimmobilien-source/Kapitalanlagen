@@ -1366,37 +1366,44 @@ function Landing({ onStart, onImpressum, onDatenschutz, onCrm }) {
   };
 
   return (
-    <div className="min-h-screen px-5 pt-10 pb-20 md:pt-16 max-w-5xl mx-auto">
-      <h1 className="text-4xl md:text-6xl font-semibold leading-[1.08] tracking-tight max-w-3xl" style={rise(0)}>
-        Wie viel Vermögen könntest du mit{" "}
-        <span style={{ background: `linear-gradient(120deg, ${GOLD_SOFT}, ${GOLD})`, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>
-          Immobilien
-        </span>{" "}
-        aufbauen?
-      </h1>
+    <div className="min-h-screen px-5 pt-10 pb-20 md:pt-16 max-w-5xl xl:max-w-6xl mx-auto">
+      <div className="xl:grid xl:grid-cols-2 xl:gap-16 xl:items-center">
+        <div>
+          <h1 className="text-4xl md:text-6xl xl:text-5xl font-semibold leading-[1.08] tracking-tight max-w-3xl xl:max-w-none" style={rise(0)}>
+            Wie viel Vermögen könntest du mit{" "}
+            <span style={{ background: `linear-gradient(120deg, ${GOLD_SOFT}, ${GOLD})`, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>
+              Immobilien
+            </span>{" "}
+            aufbauen?
+          </h1>
 
-      <p className="mt-6 text-base md:text-lg leading-relaxed max-w-2xl" style={{ color: "rgba(255,255,255,0.55)", ...rise(160) }}>
-        Beantworte wenige Fragen und erhalte kostenlos eine interaktive Beispielanalyse
-        inklusive Finanzierung, Cashflow, steuerlicher Betrachtung und Vermögensentwicklung.
-      </p>
+          <p className="mt-6 text-base md:text-lg leading-relaxed max-w-2xl xl:max-w-none" style={{ color: "rgba(255,255,255,0.55)", ...rise(160) }}>
+            Beantworte wenige Fragen und erhalte kostenlos eine interaktive Beispielanalyse
+            inklusive Finanzierung, Cashflow, steuerlicher Betrachtung und Vermögensentwicklung.
+          </p>
 
-      <p className="mt-3 text-sm leading-relaxed max-w-2xl" style={{ color: "rgba(255,255,255,0.4)", ...rise(200) }}>
-        Hausverwaltung und Mietverwaltung sind bei allen Objekten inklusive – ohne Aufwand für dich.
-      </p>
+          <p className="mt-3 text-sm leading-relaxed max-w-2xl xl:max-w-none" style={{ color: "rgba(255,255,255,0.4)", ...rise(200) }}>
+            Hausverwaltung und Mietverwaltung sind bei allen Objekten inklusive – ohne Aufwand für dich.
+          </p>
 
-      <div className="mt-9 flex flex-col items-center w-fit mx-auto" style={rise(240)}>
-        <GoldButton onClick={onStart} glow>
-          Jetzt Vermögensanalyse starten <ArrowRight size={18} />
-        </GoldButton>
-        <div className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs mt-4"
-          style={{ border: `1px solid ${HAIRLINE}`, color: "rgba(255,255,255,0.6)", background: CARD }}>
-          <Clock size={12} color={GOLD} /> Dauert nur ca. 2 Minuten
+          <div className="mt-9 flex flex-col items-center xl:items-start w-fit mx-auto xl:mx-0" style={rise(240)}>
+            <GoldButton onClick={onStart} glow>
+              Jetzt Vermögensanalyse starten <ArrowRight size={18} />
+            </GoldButton>
+            <div className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs mt-4"
+              style={{ border: `1px solid ${HAIRLINE}`, color: "rgba(255,255,255,0.6)", background: CARD }}>
+              <Clock size={12} color={GOLD} /> Dauert nur ca. 2 Minuten
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Der Vergleich ist die Kernaussage der Seite */}
-      <div className="mt-8" style={rise(340)}>
-        <DreiWegeVergleich />
+        {/* Der Vergleich ist die Kernaussage der Seite – ab 1280px direkt
+            neben dem Text, statt darunter viel Leerraum entstehen zu lassen.
+            Unterhalb von 1280px (Handy, Tablet, kleinere Laptop-Fenster)
+            bleibt exakt die mobile Reihenfolge, gestapelt. */}
+        <div className="mt-8 xl:mt-0" style={rise(340)}>
+          <DreiWegeVergleich />
+        </div>
       </div>
 
       <p className="mt-8 text-xs leading-relaxed max-w-2xl" style={{ color: "rgba(255,255,255,0.3)", ...rise(420) }}>
