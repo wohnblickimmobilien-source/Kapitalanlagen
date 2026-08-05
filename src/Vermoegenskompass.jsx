@@ -1267,9 +1267,8 @@ function DreiWegeVergleich() {
     };
   }, [satz]);
 
-  // Faktor und Unterschied gegen die stärkere Alternative (ETF), nicht gegen
-  // Tagesgeld – das ist der ehrlichere, konservativere Vergleich.
-  const faktor = aktien >= 50 ? immo / aktien : null;
+  // Unterschied gegen die stärkere Alternative (ETF), nicht gegen Tagesgeld
+  // – das ist der ehrlichere, konservativere Vergleich.
 
   const [sichtbar, setSichtbar] = useState(false);
   useEffect(() => { const id = setTimeout(() => setSichtbar(true), 700); return () => clearTimeout(id); }, []);
@@ -1368,33 +1367,6 @@ function DreiWegeVergleich() {
           Unterschied zum {V.aktienLabel}: {eur(Math.round(deltaZahl))}
         </span>
       </div>
-
-      {/* Eckwerte */}
-      <div className="grid grid-cols-3 gap-2.5 xl:gap-2 mt-6 xl:mt-4">
-        {[
-          { l: "Eigenkapital", v: eur(0) },
-          { l: "Belastung/Monat", v: eur(belastungMonat) },
-          { l: `vs. ${V.aktienLabel}`, v: faktor ? faktor.toFixed(1).replace(".", ",") + "×" : "–" },
-        ].map((k) => (
-          <div key={k.l} className="rounded-xl p-3 xl:p-2.5" style={{ background: "rgba(0,0,0,0.3)", border: `1px solid ${HAIRLINE}` }}>
-            <div className="text-xs mb-1 leading-tight" style={{ color: "rgba(255,255,255,0.4)", minHeight: "2em" }}>{k.l}</div>
-            <div className="text-sm xl:text-xs font-medium tabular-nums">{k.v}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Kleingedrucktes hinter einem Toggle statt immer sichtbar – hält die
-          Karte kompakt, Details bleiben für Interessierte trotzdem verfügbar. */}
-      <Details titel="Details zur Berechnung anzeigen">
-        <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.33)" }}>
-          Beispiel für einen Angestellten mit {eurK(V.bruttoReferenz)}k € Brutto, {pct(CONFIG.projektion.wertsteigerung)} angenommener
-          Wertsteigerung p. a. Die monatliche Belastung ist der Wert aus dem ersten Jahr, vereinfacht über den
-          gesamten Zeitraum konstant gerechnet – in der Praxis sinkt sie meist, weil die Miete steigt. Eine
-          Vollfinanzierung hängt von deiner Bonität ab und ist nicht für jeden möglich. {pct(V.aktienzins)}
-          p. a. sind ein Beispielwert für einen ETF-Sparplan – tatsächliche Renditen schwanken und sind nicht
-          garantiert. Keine Prognose.
-        </p>
-      </Details>
     </Card>
   );
 }
