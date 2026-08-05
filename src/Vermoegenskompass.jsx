@@ -1123,6 +1123,11 @@ function kuerzeBewertung(text, maxLaenge = 150) {
   return { text: stelle.slice(0, letzteLeerstelle > 0 ? letzteLeerstelle : maxLaenge).trim(), gekuerzt: true };
 }
 
+/** "Mark R." → "MR" – für den Mini-Avatar, da keine echten Fotos hinterlegt sind. */
+function initialen(name) {
+  return name.split(" ").map((teil) => teil[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+}
+
 function Bewertungskarten() {
   const eintraege = CONFIG.bewertungen;
   if (!eintraege || eintraege.length === 0) return null;
@@ -1153,10 +1158,19 @@ function Bewertungskarten() {
           return (
             <div key={i} className="rounded-2xl p-5" style={{ background: CARD, border: `1px solid ${HAIRLINE}` }}>
               <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
+                    style={{ background: "rgba(201,162,39,0.15)", color: GOLD_SOFT, border: "1px solid rgba(201,162,39,0.3)" }}>
+                    {initialen(b.name)}
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium leading-tight">{b.name}</div>
+                    <div className="text-xs leading-tight" style={{ color: "rgba(255,255,255,0.4)" }}>{b.rolle || "Anleger"}</div>
+                  </div>
+                </div>
                 <Sterne anzahl={b.sterne ?? 5} size={12} />
-                <span className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>{b.name}</span>
               </div>
-              <p className="text-sm leading-relaxed mt-3" style={{ color: "rgba(255,255,255,0.7)" }}>
+              <p className="text-sm leading-relaxed mt-3.5" style={{ color: "rgba(255,255,255,0.7)" }}>
                 „{auszug}{gekuerzt ? "…" : "\u201C"}
               </p>
             </div>
@@ -1316,7 +1330,7 @@ function DreiWegeVergleich() {
       </p>
 
       {/* Säulen */}
-      <div className="flex items-end gap-3 mt-9" style={{ height: 210 }}>
+      <div className="flex items-end gap-3 mt-7" style={{ height: 210 }}>
         {saeulen.map((s) => (
           <div key={s.label} className="flex-1 h-full flex flex-col items-center justify-end">
             <div className="text-sm md:text-base font-semibold tabular-nums mb-2.5 whitespace-nowrap"
@@ -1344,7 +1358,7 @@ function DreiWegeVergleich() {
       </div>
 
       {/* Unterschied */}
-      <div className="flex items-center justify-center mt-7">
+      <div className="flex items-center justify-center mt-6">
         <span className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium tabular-nums"
           style={{
             background: "rgba(52,211,153,0.10)", border: "1px solid rgba(52,211,153,0.32)", color: GREEN,
@@ -1356,7 +1370,7 @@ function DreiWegeVergleich() {
       </div>
 
       {/* Eckwerte */}
-      <div className="grid grid-cols-3 gap-2.5 mt-8">
+      <div className="grid grid-cols-3 gap-2.5 mt-6">
         {[
           { l: "Eigenkapital", v: eur(0) },
           { l: "Belastung/Monat", v: eur(belastungMonat) },
@@ -1369,14 +1383,18 @@ function DreiWegeVergleich() {
         ))}
       </div>
 
-      <p className="text-xs leading-relaxed mt-6" style={{ color: "rgba(255,255,255,0.33)" }}>
-        Beispiel für einen Angestellten mit {eurK(V.bruttoReferenz)}k € Brutto, {pct(CONFIG.projektion.wertsteigerung)} angenommener
-        Wertsteigerung p. a. Die monatliche Belastung ist der Wert aus dem ersten Jahr, vereinfacht über den
-        gesamten Zeitraum konstant gerechnet – in der Praxis sinkt sie meist, weil die Miete steigt. Eine
-        Vollfinanzierung hängt von deiner Bonität ab und ist nicht für jeden möglich. {pct(V.aktienzins)}
-        p. a. sind ein Beispielwert für einen ETF-Sparplan – tatsächliche Renditen schwanken und sind nicht
-        garantiert. Keine Prognose.
-      </p>
+      {/* Kleingedrucktes hinter einem Toggle statt immer sichtbar – hält die
+          Karte kompakt, Details bleiben für Interessierte trotzdem verfügbar. */}
+      <Details titel="Details zur Berechnung anzeigen">
+        <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.33)" }}>
+          Beispiel für einen Angestellten mit {eurK(V.bruttoReferenz)}k € Brutto, {pct(CONFIG.projektion.wertsteigerung)} angenommener
+          Wertsteigerung p. a. Die monatliche Belastung ist der Wert aus dem ersten Jahr, vereinfacht über den
+          gesamten Zeitraum konstant gerechnet – in der Praxis sinkt sie meist, weil die Miete steigt. Eine
+          Vollfinanzierung hängt von deiner Bonität ab und ist nicht für jeden möglich. {pct(V.aktienzins)}
+          p. a. sind ein Beispielwert für einen ETF-Sparplan – tatsächliche Renditen schwanken und sind nicht
+          garantiert. Keine Prognose.
+        </p>
+      </Details>
     </Card>
   );
 }
@@ -1403,7 +1421,7 @@ function Landing({ onStart, onImpressum, onDatenschutz, onCrm }) {
 
   return (
     <div className="min-h-screen px-5 pt-10 pb-20 md:pt-16 max-w-5xl xl:max-w-6xl mx-auto">
-      <div className="xl:grid xl:grid-cols-2 xl:gap-16 xl:items-start">
+      <div className="xl:grid xl:grid-cols-2 xl:gap-16 xl:items-center">
         <div>
           <h1 className="text-4xl md:text-6xl xl:text-5xl font-semibold leading-[1.08] tracking-tight max-w-3xl xl:max-w-none" style={rise(0)}>
             Wie viel Vermögen könntest du mit{" "}
