@@ -435,9 +435,9 @@ const CONFIG = {
   // Vor dem Livegang durch echte Bewertungen ersetzen oder das Array leeren –
   // erfundene Bewertungen sind nach Anh. Nr. 23b UWG nicht zulässig.
   bewertungen: [
-    { name: "Mark R.", sterne: 5, text: "Als ich mich an Philipp gewandt habe, war der Kauf einer vermieteten Immobilie für mich noch komplettes Neuland. Besonders positiv fand ich, dass er sich zunächst viel Zeit genommen hat, meine Ziele und meine finanzielle Situation zu verstehen.\n\nDie Immobilie wurde **nicht schöngerechnet**, sondern inklusive Finanzierung, laufender Kosten und möglicher Risiken transparent erklärt. Auch bei meinen vielen Rückfragen hatte ich nie das Gefühl, unter Druck gesetzt zu werden.\n\nWährend des gesamten Kaufprozesses war Philipp gut erreichbar und hat die einzelnen Schritte verständlich begleitet. Dadurch konnte ich meine Entscheidung mit einem wirklich guten Gefühl treffen. Rückblickend bin ich mit der Zusammenarbeit und meiner **ersten Kapitalanlage sehr zufrieden**." },
-    { name: "Thomas B.", sterne: 5, text: "Für mich war lange nicht klar, ob ich mein Geld weiterhin überwiegend in Aktien und ETFs investieren oder zusätzlich eine vermietete Immobilie kaufen sollte.\n\nDurch die Gespräche mit Philipp habe ich verstanden, dass Immobilien für meine persönliche Situation **einen ganz anderen Hebel ermöglichen**, weil ich nicht nur mit meinem eigenen Kapital arbeite, sondern zusätzlich Finanzierung und Mieteinnahmen einbeziehe. Dadurch kann die Rendite auf das tatsächlich eingesetzte Eigenkapital deutlich interessanter ausfallen – natürlich immer abhängig vom Objekt und von der Finanzierung.\n\nBesonders wichtig war mir, **langfristig Vermögen aufzubauen** und gleichzeitig meine Altersvorsorge breiter aufzustellen. Philipp hat mir die Unterschiede zu anderen Anlageformen nachvollziehbar erklärt, ohne Aktien oder ETFs grundsätzlich schlechtzureden.\n\nDie Immobilie wurde mit allen Kosten, Chancen und Risiken transparent durchgerechnet. Für meine Ziele war der Kauf deshalb **der richtige Schritt**, und ich bin froh, ihn gemeinsam mit Philipp umgesetzt zu haben." },
-    { name: "Sarah S.", sterne: 5, text: "Rückblickend war für mich die wichtigste Erkenntnis, dass bei Immobilien nicht nur das richtige Objekt zählt, sondern auch **der Zeitpunkt**. Jedes weitere Jahr, in dem man nur sucht und nicht investiert, ist schließlich auch ein Jahr ohne Mieteinnahmen, Tilgung und möglichen Vermögensaufbau.\n\nIch hätte vermutlich noch mehrere Jahre auf ImmoScout vergleichen können, ohne wirklich sicher zu wissen, ob ich am Ende ein besseres Objekt finde. Bei Philipp hatte ich dagegen von Anfang an das Gefühl, dass die Immobilie **zu meiner finanziellen Situation und meinen langfristigen Zielen** ausgewählt wurde.\n\nAlle Zahlen, laufenden Kosten und auch die Risiken wurden offen und verständlich erklärt. Deshalb war es für mich sinnvoller, mit professioneller Begleitung eine fundierte Entscheidung zu treffen, statt jahrelang auf das vermeintlich perfekte Angebot zu warten.\n\nHeute bin ich froh, den Schritt gemacht zu haben, und würde bei der nächsten Kapitalanlage **wieder mit Philipp zusammenarbeiten**." },
+    { name: "Mark R.", sterne: 5, kurz: "Während des gesamten Kaufprozesses war Philipp gut erreichbar und hat die einzelnen Schritte verständlich begleitet. Dadurch konnte ich meine Entscheidung mit einem wirklich guten Gefühl treffen. Rückblickend bin ich mit der Zusammenarbeit und meiner ersten Kapitalanlage sehr zufrieden.", text: "Als ich mich an Philipp gewandt habe, war der Kauf einer vermieteten Immobilie für mich noch komplettes Neuland. Besonders positiv fand ich, dass er sich zunächst viel Zeit genommen hat, meine Ziele und meine finanzielle Situation zu verstehen.\n\nDie Immobilie wurde **nicht schöngerechnet**, sondern inklusive Finanzierung, laufender Kosten und möglicher Risiken transparent erklärt. Auch bei meinen vielen Rückfragen hatte ich nie das Gefühl, unter Druck gesetzt zu werden.\n\nWährend des gesamten Kaufprozesses war Philipp gut erreichbar und hat die einzelnen Schritte verständlich begleitet. Dadurch konnte ich meine Entscheidung mit einem wirklich guten Gefühl treffen. Rückblickend bin ich mit der Zusammenarbeit und meiner **ersten Kapitalanlage sehr zufrieden**." },
+    { name: "Thomas B.", sterne: 5, kurz: "Besonders wichtig war mir, langfristig Vermögen aufzubauen und gleichzeitig meine Altersvorsorge breiter aufzustellen. Philipp hat mir die Unterschiede zu anderen Anlageformen nachvollziehbar erklärt, ohne Aktien oder ETFs grundsätzlich schlechtzureden. Die Immobilie wurde mit allen Kosten, Chancen und Risiken transparent durchgerechnet. Für meine Ziele war der Kauf deshalb der richtige Schritt, und ich bin froh, ihn gemeinsam mit Philipp umgesetzt zu haben.", text: "Für mich war lange nicht klar, ob ich mein Geld weiterhin überwiegend in Aktien und ETFs investieren oder zusätzlich eine vermietete Immobilie kaufen sollte.\n\nDurch die Gespräche mit Philipp habe ich verstanden, dass Immobilien für meine persönliche Situation **einen ganz anderen Hebel ermöglichen**, weil ich nicht nur mit meinem eigenen Kapital arbeite, sondern zusätzlich Finanzierung und Mieteinnahmen einbeziehe. Dadurch kann die Rendite auf das tatsächlich eingesetzte Eigenkapital deutlich interessanter ausfallen – natürlich immer abhängig vom Objekt und von der Finanzierung.\n\nBesonders wichtig war mir, **langfristig Vermögen aufzubauen** und gleichzeitig meine Altersvorsorge breiter aufzustellen. Philipp hat mir die Unterschiede zu anderen Anlageformen nachvollziehbar erklärt, ohne Aktien oder ETFs grundsätzlich schlechtzureden.\n\nDie Immobilie wurde mit allen Kosten, Chancen und Risiken transparent durchgerechnet. Für meine Ziele war der Kauf deshalb **der richtige Schritt**, und ich bin froh, ihn gemeinsam mit Philipp umgesetzt zu haben." },
+    { name: "Sarah S.", sterne: 5, kurz: "Alle Zahlen, laufenden Kosten und auch die Risiken wurden offen und verständlich erklärt. Deshalb war es für mich sinnvoller, mit professioneller Begleitung eine fundierte Entscheidung zu treffen, statt jahrelang auf das vermeintlich perfekte Angebot zu warten. Heute bin ich froh, den Schritt gemacht zu haben, und würde bei der nächsten Kapitalanlage wieder mit Philipp zusammenarbeiten.", text: "Rückblickend war für mich die wichtigste Erkenntnis, dass bei Immobilien nicht nur das richtige Objekt zählt, sondern auch **der Zeitpunkt**. Jedes weitere Jahr, in dem man nur sucht und nicht investiert, ist schließlich auch ein Jahr ohne Mieteinnahmen, Tilgung und möglichen Vermögensaufbau.\n\nIch hätte vermutlich noch mehrere Jahre auf ImmoScout vergleichen können, ohne wirklich sicher zu wissen, ob ich am Ende ein besseres Objekt finde. Bei Philipp hatte ich dagegen von Anfang an das Gefühl, dass die Immobilie **zu meiner finanziellen Situation und meinen langfristigen Zielen** ausgewählt wurde.\n\nAlle Zahlen, laufenden Kosten und auch die Risiken wurden offen und verständlich erklärt. Deshalb war es für mich sinnvoller, mit professioneller Begleitung eine fundierte Entscheidung zu treffen, statt jahrelang auf das vermeintlich perfekte Angebot zu warten.\n\nHeute bin ich froh, den Schritt gemacht zu haben, und würde bei der nächsten Kapitalanlage **wieder mit Philipp zusammenarbeiten**." },
   ],
   impressum: {
     name: "Philipp Streib",
@@ -1110,23 +1110,59 @@ function Sterne({ anzahl = 5, size = 13 }) {
 }
 
 /** Kurze Bewertungskarten – rendert nichts, solange CONFIG.bewertungen leer ist. */
+/** Kürzt eine Bewertung auf den ersten Absatz und ggf. weiter auf maxLaenge
+ * Zeichen (an einer Wortgrenze abgeschnitten) – für die Startseite, wo ein
+ * knapper Eindruck reicht statt des vollständigen Zitats wie auf der
+ * Ergebnisseite. Markdown-Sternchen werden entfernt, damit beim Abschneiden
+ * keine offenen "**" stehen bleiben. */
+function kuerzeBewertung(text, maxLaenge = 150) {
+  const ersterAbsatz = text.split(/\n\s*\n/)[0].replace(/\*\*/g, "");
+  if (ersterAbsatz.length <= maxLaenge) return { text: ersterAbsatz, gekuerzt: false };
+  const stelle = ersterAbsatz.slice(0, maxLaenge);
+  const letzteLeerstelle = stelle.lastIndexOf(" ");
+  return { text: stelle.slice(0, letzteLeerstelle > 0 ? letzteLeerstelle : maxLaenge).trim(), gekuerzt: true };
+}
+
 function Bewertungskarten() {
   const eintraege = CONFIG.bewertungen;
   if (!eintraege || eintraege.length === 0) return null;
 
   const spalten = { 1: "", 2: "sm:grid-cols-2", 3: "sm:grid-cols-3" }[Math.min(eintraege.length, 3)];
+  const schnitt = eintraege.reduce((s, b) => s + (b.sterne ?? 5), 0) / eintraege.length;
 
   return (
-    <div className={`grid gap-3 ${spalten}`}>
-      {eintraege.map((b, i) => (
-        <div key={i} className="rounded-2xl p-5" style={{ background: CARD, border: `1px solid ${HAIRLINE}` }}>
-          <Sterne anzahl={b.sterne ?? 5} size={12} />
-          <div className="mt-2.5">
-            <BewertungsText text={b.text} style={{ color: "rgba(255,255,255,0.7)" }} />
-          </div>
-          <div className="text-xs mt-2.5" style={{ color: "rgba(255,255,255,0.4)" }}>{b.name}</div>
+    <div>
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+        <div>
+          <Eyebrow>Stimmen</Eyebrow>
+          <h3 className="text-xl font-semibold -mt-1">Was Kunden sagen</h3>
         </div>
-      ))}
+        <div className="flex items-center gap-2 text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
+          <Sterne anzahl={Math.round(schnitt)} size={13} />
+          <span className="tabular-nums">{schnitt.toFixed(1).replace(".", ",")} · {eintraege.length} Bewertungen</span>
+        </div>
+      </div>
+      <div className={`grid gap-3 ${spalten}`}>
+        {eintraege.map((b, i) => {
+          // Echte, von Philipp/aus dem Original-Zitat stammende Kurzfassung
+          // bevorzugen (kohärenter Satz) – automatisches Abschneiden nur als
+          // Rückfall, falls eine künftige Bewertung ohne "kurz" ergänzt wird.
+          const fallback = b.kurz ? null : kuerzeBewertung(b.text);
+          const auszug = b.kurz || fallback.text;
+          const gekuerzt = !b.kurz && fallback.gekuerzt;
+          return (
+            <div key={i} className="rounded-2xl p-5" style={{ background: CARD, border: `1px solid ${HAIRLINE}` }}>
+              <div className="flex items-center justify-between">
+                <Sterne anzahl={b.sterne ?? 5} size={12} />
+                <span className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>{b.name}</span>
+              </div>
+              <p className="text-sm leading-relaxed mt-3" style={{ color: "rgba(255,255,255,0.7)" }}>
+                „{auszug}{gekuerzt ? "…" : "\u201C"}
+              </p>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1367,7 +1403,7 @@ function Landing({ onStart, onImpressum, onDatenschutz, onCrm }) {
 
   return (
     <div className="min-h-screen px-5 pt-10 pb-20 md:pt-16 max-w-5xl xl:max-w-6xl mx-auto">
-      <div className="xl:grid xl:grid-cols-2 xl:gap-16 xl:items-center">
+      <div className="xl:grid xl:grid-cols-2 xl:gap-16 xl:items-start">
         <div>
           <h1 className="text-4xl md:text-6xl xl:text-5xl font-semibold leading-[1.08] tracking-tight max-w-3xl xl:max-w-none" style={rise(0)}>
             Wie viel Vermögen könntest du mit{" "}
