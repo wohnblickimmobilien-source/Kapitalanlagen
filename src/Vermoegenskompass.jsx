@@ -846,6 +846,7 @@ function GoldButton({ children, onClick, disabled, full, compact, glow }) {
 function GlobalStyles() {
   return (
     <style>{`
+      html, body{margin:0;background:${INK};}
       .vk-range{-webkit-appearance:none;appearance:none;width:100%;height:30px;background:transparent;cursor:grab;touch-action:none;}
       .vk-range:active{cursor:grabbing;}
       .vk-range::-webkit-slider-runnable-track{height:5px;border-radius:99px;
@@ -1432,7 +1433,7 @@ function Landing({ onStart, onImpressum, onDatenschutz, onCrm }) {
         </div>
       </div>
 
-      <p className="mt-8 text-xs leading-relaxed max-w-2xl" style={{ color: "rgba(255,255,255,0.3)", ...rise(420) }}>
+      <p className="mt-8 text-xs leading-relaxed max-w-2xl xl:hidden" style={{ color: "rgba(255,255,255,0.3)", ...rise(420) }}>
         Alle Darstellungen sind überschlägige Beispielrechnungen auf Basis allgemeiner Annahmen.
         Sie ersetzen keine Steuer-, Rechts- oder Anlageberatung.
       </p>
