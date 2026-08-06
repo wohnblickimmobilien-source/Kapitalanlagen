@@ -1313,26 +1313,26 @@ function DreiWegeVergleich() {
   ];
 
   return (
-    <Card className="p-7 md:p-8 xl:p-6">
+    <Card className="p-7 md:p-8 xl:p-7">
       <Eyebrow>Beispielrechnung</Eyebrow>
-      <h2 className="text-2xl md:text-3xl xl:text-xl font-semibold tracking-tight leading-snug">
+      <h2 className="text-2xl md:text-3xl xl:text-2xl font-semibold tracking-tight leading-snug">
         {eur(belastungMonat)} im Monat – drei Wege, {V.jahre} Jahre.
       </h2>
-      <p className="text-sm xl:text-xs mt-3 xl:mt-2 leading-relaxed font-medium" style={{ color: GOLD_SOFT }}>
+      <p className="text-sm mt-3 leading-relaxed font-medium" style={{ color: GOLD_SOFT }}>
         In diesem Beispiel baut die Immobilie mit derselben monatlichen Belastung mit Abstand
         das meiste Vermögen auf – ganz ohne Eigenkapital.
       </p>
-      <p className="text-sm xl:text-xs mt-2 leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>
+      <p className="text-sm mt-2 leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>
         Kein Eigenkapital nötig. Dieselbe monatliche Belastung – als Tagesgeld-Sparplan, als
         {" "}{V.aktienLabel}-Sparplan, oder als Vollfinanzierung einer Immobilie, bei der die Miete
         den Großteil der Rate trägt.
       </p>
 
       {/* Säulen */}
-      <div className="flex items-end gap-3 mt-7 xl:mt-5 h-[210px] xl:h-[140px]">
+      <div className="flex items-end gap-3 mt-7 xl:mt-6 h-[210px] xl:h-[175px]">
         {saeulen.map((s) => (
           <div key={s.label} className="flex-1 h-full flex flex-col items-center justify-end">
-            <div className="text-sm md:text-base xl:text-sm font-semibold tabular-nums mb-2.5 whitespace-nowrap"
+            <div className="text-sm md:text-base font-semibold tabular-nums mb-2.5 whitespace-nowrap"
               style={{ color: s.textFarbe }}>
               {eur(Math.round(s.zahl))}
             </div>
@@ -1347,18 +1347,18 @@ function DreiWegeVergleich() {
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-3 gap-2 pt-3 xl:pt-2" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+      <div className="grid grid-cols-3 gap-2 pt-3" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
         {saeulen.map((s) => (
           <div key={s.label} className="text-center">
-            <div className="text-sm xl:text-xs" style={{ color: "rgba(255,255,255,0.75)" }}>{s.label}</div>
+            <div className="text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>{s.label}</div>
             <div className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>{s.unter}</div>
           </div>
         ))}
       </div>
 
       {/* Unterschied */}
-      <div className="flex items-center justify-center mt-6 xl:mt-4">
-        <span className="inline-flex items-center gap-2 rounded-full px-4 py-2 xl:px-3 xl:py-1.5 text-sm xl:text-xs font-medium tabular-nums"
+      <div className="flex items-center justify-center mt-6">
+        <span className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium tabular-nums"
           style={{
             background: "rgba(52,211,153,0.10)", border: "1px solid rgba(52,211,153,0.32)", color: GREEN,
             opacity: sichtbar ? 1 : 0, transition: "opacity .8s ease 1.5s",
@@ -1427,7 +1427,7 @@ function Landing({ onStart, onImpressum, onDatenschutz, onCrm }) {
             neben dem Text, statt darunter viel Leerraum entstehen zu lassen.
             Unterhalb von 1280px (Handy, Tablet, kleinere Laptop-Fenster)
             bleibt exakt die mobile Reihenfolge, gestapelt. */}
-        <div className="mt-8 xl:mt-0 xl:max-w-md xl:ml-auto" style={rise(340)}>
+        <div className="mt-8 xl:mt-0 xl:max-w-lg xl:ml-auto" style={rise(340)}>
           <DreiWegeVergleich />
         </div>
       </div>
