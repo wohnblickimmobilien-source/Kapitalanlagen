@@ -3183,12 +3183,29 @@ function formatZahlDE(n) {
   const gerundet = Math.round(n * 100) / 100;
   return gerundet.toString().replace(".", ",");
 }
-/** Liest einen roh eingetippten Text als Zahl – akzeptiert Komma UND Punkt
- * als Dezimaltrennzeichen, ignoriert alles andere. Gibt null zurück, solange
- * noch nichts Gültiges dasteht (z. B. leer oder nur ein Minus), damit
- * während des Tippens nicht ständig auf 0 zurückgesprungen wird. */
+/** Liest einen roh eingetippten Text als Zahl – deutsche Schreibweise:
+ * Komma ist IMMER das Dezimaltrennzeichen. Ein Punkt wird nur dann als
+ * Tausendertrennzeichen behandelt (und entfernt), wenn er zu einer
+ * dreistelligen Gruppe passt ("380.000" → 380000) – ein einzelner Punkt mit
+ * abweichender Stellenzahl ("4.5") bleibt ein Dezimalpunkt. Ohne diese
+ * Unterscheidung würde "380.000" als 380 statt 380.000 gelesen, weil
+ * JavaScript einen Punkt sonst immer als Dezimaltrennzeichen liest – das
+ * kann sich über mehrere Felder hinweg zu absurden Endergebnissen aufschaukeln.
+ * Gibt null zurück, solange noch nichts Gültiges dasteht (leer, nur ein
+ * Minus), damit während des Tippens nicht ständig auf 0 zurückgesprungen wird. */
 function parseZahlDE(roh) {
-  const bereinigt = roh.replace(",", ".").replace(/[^0-9.\-]/g, "");
+  let s = roh.trim();
+  if (s === "" || s === "-") return null;
+  if (s.includes(",")) {
+    // Komma vorhanden → das ist das Dezimaltrennzeichen, alle Punkte davor
+    // sind zwangsläufig Tausendertrennzeichen ("380.000,50").
+    s = s.replace(/\./g, "").replace(",", ".");
+  } else {
+    const teile = s.split(".");
+    const wirktWieTausender = teile.length > 1 && teile.slice(1).every((t) => t.length === 3);
+    if (wirktWieTausender) s = s.replace(/\./g, "");
+  }
+  const bereinigt = s.replace(/[^0-9.\-]/g, "");
   if (bereinigt === "" || bereinigt === "-") return null;
   const n = parseFloat(bereinigt);
   return Number.isFinite(n) ? n : null;
