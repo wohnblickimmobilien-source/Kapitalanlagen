@@ -5,7 +5,7 @@ import {
 import {
   ArrowRight, ArrowLeft, Check, TrendingUp, Receipt,
   Calculator, ChevronRight, Info, UserCheck, MessageCircle, Clock, Star,
-  Phone, Mail, RefreshCw, Search, Users, X, Plus, Trash2
+  Phone, Mail, RefreshCw, Search, Users, X, Plus, Trash2, Download
 } from "lucide-react";
 
 /* ============================================================================
@@ -111,6 +111,7 @@ const LEAD_SPALTEN = {
   telefon: "telefon", email: "email", termin: "termin", vollstaendig: "vollstaendig",
   crmStatus: "crm_status", notizVerlauf: "notiz_verlauf",
   selbstauskunft: "selbstauskunft", selbstauskunftEingereichtAm: "selbstauskunft_eingereicht_am",
+  analyse: "analyse", analyseAktualisiertAm: "analyse_aktualisiert_am",
 };
 
 /** Flaches Lead-Objekt (wie es die App überall nutzt) → Tabellenzeile mit
@@ -355,13 +356,13 @@ const CONFIG = {
     gebaeudeanteil: 0.80,
     afaSatz: 0.04,
     afaDauerJahre: 25,
-    bruttomietrendite: 0.05,
+    bruttomietrendite: 0.047,
     nichtUmlagefaehigMonat: 100,
     mietsteigerung: 0.02,
   },
   finanzierung: {
-    sollzins: 0.04,
-    anfangstilgung: 0.02,
+    sollzins: 0.045,
+    anfangstilgung: 0.015,
   },
   projektion: {
     wertsteigerung: 0.02,
@@ -377,8 +378,9 @@ const CONFIG = {
     sparLabel: "Tagesgeld",
     aktienzins: 0.06,
     aktienLabel: "ETF",
-    bruttoReferenz: 60000,     // Referenzperson für den geschätzten Steuersatz
+    bruttoReferenz: 60000,     // Nur noch für die Anzeigetexte relevant, der Steuersatz selbst ist fest
     statusReferenz: "angestellt",
+    steuersatzFix: 0.42,       // Bewusst fest statt aus bruttoReferenz berechnet – 42% ist der auf der Startseite gewünschte Vergleichswert
   },
   // Einkommensteuer-Tarif 2025 (§32a EStG), Grundtarif
   steuer: {
@@ -1238,9 +1240,9 @@ function Hinweis({ children }) {
  * Wichtig: Die beiden Sparseiten werden korrekt verzinst dargestellt – nicht als Null.
  * Der Effekt entsteht durch den Hebel, nicht durch einen geschönten Vergleich.
  */
-function DreiWegeVergleich() {
+function DreiWegeVergleich({ onRechner }) {
   const V = CONFIG.vergleich;
-  const satz = useMemo(() => grenzsteuersatz(V.bruttoReferenz, V.statusReferenz), []);
+  const satz = CONFIG.vergleich.steuersatzFix;
 
   // Kein Eigenkapital – dieselbe monatliche Belastung, drei Wege: Tagesgeld,
   // ETF-Sparplan, oder Vollfinanzierung einer Immobilie. Die Belastung ist
@@ -1368,12 +1370,18 @@ function DreiWegeVergleich() {
           Unterschied zum {V.aktienLabel}: {eur(Math.round(deltaZahl))}
         </span>
       </div>
+
+      <button onClick={onRechner}
+        className="w-full mt-5 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-medium transition-colors"
+        style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${HAIRLINE}`, color: "rgba(255,255,255,0.7)" }}>
+        <Calculator size={13} /> Kalkulation im Detail ansehen
+      </button>
     </Card>
   );
 }
 
 /* ============================================================ Landing Page */
-function Landing({ onStart, onImpressum, onDatenschutz, onCrm }) {
+function Landing({ onStart, onImpressum, onDatenschutz, onCrm, onRechner }) {
   const [t, setT] = useState(0);
   useEffect(() => { const id = setTimeout(() => setT(1), 80); return () => clearTimeout(id); }, []);
   const ease = { transition: "opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1)" };
@@ -1429,7 +1437,7 @@ function Landing({ onStart, onImpressum, onDatenschutz, onCrm }) {
             Unterhalb von 1280px (Handy, Tablet, kleinere Laptop-Fenster)
             bleibt exakt die mobile Reihenfolge, gestapelt. */}
         <div className="mt-8 xl:mt-0 xl:max-w-lg xl:ml-auto" style={rise(340)}>
-          <DreiWegeVergleich />
+          <DreiWegeVergleich onRechner={onRechner} />
         </div>
       </div>
 
@@ -1548,6 +1556,28 @@ function Quiz({ antworten, setAntworten, onFertig, onZurueck }) {
     };
   }, [steuerlastJahr, steuersatz]);
   const steuerlastMitImmobilie = steuerRechnung.steuerlastMit;
+
+  // Live-Vorschau für die Sparrate-Frage: derselbe echte Rechenkern wie
+  // überall sonst, nur der Referenz-Kaufpreis wird proportional zur
+  // eingestellten Sparrate skaliert (dieselbe Belastung-zu-Kaufpreis-Logik
+  // wie im DreiWegeVergleich, nur umgekehrt aufgelöst). Bewusst als
+  // Näherung markiert ("≈"), nicht als exakte Endauswertung.
+  const referenzBelastung = useMemo(() => {
+    const modell = berechneModell({
+      kaufpreis: CONFIG.objekt.kaufpreisDefault, eigenkapitalEinsatz: 0,
+      steuersatz, wertsteigerung: CONFIG.projektion.wertsteigerung,
+    });
+    return Math.max(1, Math.round(-modell.monat.cfNachSteuer));
+  }, [steuersatz]);
+  const sparrateVorschau = useMemo(() => {
+    if (!a.sparrate) return 0;
+    const faktor = a.sparrate / referenzBelastung;
+    const modell = berechneModell({
+      kaufpreis: CONFIG.objekt.kaufpreisDefault * faktor, eigenkapitalEinsatz: 0,
+      steuersatz, wertsteigerung: CONFIG.projektion.wertsteigerung,
+    });
+    return modell.stand(20).nettovermoegen;
+  }, [a.sparrate, referenzBelastung, steuersatz]);
 
   /**
    * Bei Fragen mit genau einer möglichen Antwort geht es von selbst weiter.
@@ -1758,8 +1788,20 @@ function Quiz({ antworten, setAntworten, onFertig, onZurueck }) {
       titel: "Was kannst du monatlich zurücklegen?",
       hilfe: "Der Betrag, den du dir realistisch leisten könntest – deine Sparrate fließt direkt in deine Auswertung ein.",
       valide: true,
-      inhalt: <Slider value={a.sparrate} min={0} max={2000} step={25} kurve={2}
-        onChange={(v) => set({ sparrate: v })} format={(v) => eur(v) + " / Monat"} />,
+      inhalt: (
+        <div className="space-y-5">
+          <Slider value={a.sparrate} min={0} max={2000} step={25} kurve={2}
+            onChange={(v) => set({ sparrate: v })} format={(v) => eur(v) + " / Monat"} />
+          {a.sparrate > 0 && (
+            <div className="rounded-2xl p-4" style={{ background: "rgba(201,162,39,0.1)", border: "1px solid rgba(201,162,39,0.3)" }}>
+              <div className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>Damit wären bei einer passenden Immobilie überschlägig</div>
+              <div className="text-xl font-semibold tabular-nums mt-0.5" style={{ color: GOLD_SOFT }}>
+                ≈ {eur(Math.round(sparrateVorschau))} <span className="text-sm font-normal" style={{ color: "rgba(255,255,255,0.5)" }}>Nettovermögen in 20 Jahren</span>
+              </div>
+            </div>
+          )}
+        </div>
+      ),
     },
     {
       titel: "Besitzt du bereits Immobilien?",
@@ -2641,6 +2683,66 @@ function TelefonGate({ antworten, onWeiter }) {
 }
 
 /* ======================================================== Ergebnisseite */
+/** Zeichnet das persönliche Ergebnis als teilbares 9:16-Bild (Canvas-API,
+ * kein zusätzliches Paket nötig) und löst direkt den Download aus – gedacht
+ * zum Teilen in der Instagram Story. */
+function StoryKarteButton({ nettovermoegen, jahr, faktor }) {
+  const erstelleUndSpeichern = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1080; canvas.height = 1920;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = INK;
+    ctx.fillRect(0, 0, 1080, 1920);
+
+    const glow = ctx.createRadialGradient(540, 320, 0, 540, 320, 720);
+    glow.addColorStop(0, "rgba(201,162,39,0.28)");
+    glow.addColorStop(1, "rgba(201,162,39,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, 1080, 1920);
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = GOLD;
+    ctx.font = "600 30px system-ui, -apple-system, sans-serif";
+    ctx.fillText("MEINE VERMÖGENSANALYSE", 540, 720);
+
+    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    ctx.font = "400 34px system-ui, sans-serif";
+    ctx.fillText(`Nettovermögen nach ${jahr} Jahren`, 540, 800);
+
+    const zahlGradient = ctx.createLinearGradient(140, 0, 940, 0);
+    zahlGradient.addColorStop(0, "#ffffff");
+    zahlGradient.addColorStop(1, GOLD_SOFT);
+    ctx.fillStyle = zahlGradient;
+    ctx.font = "700 108px system-ui, sans-serif";
+    ctx.fillText(eur(Math.round(nettovermoegen)), 540, 940);
+
+    if (faktor && faktor > 1) {
+      ctx.fillStyle = GREEN;
+      ctx.font = "500 36px system-ui, sans-serif";
+      ctx.fillText(`${faktor.toFixed(1).replace(".", ",")}× mehr als Tagesgeld`, 540, 1030);
+    }
+
+    ctx.fillStyle = "rgba(255,255,255,0.4)";
+    ctx.font = "400 30px system-ui, sans-serif";
+    ctx.fillText("philippstreib.com/analyse", 540, 1820);
+
+    const link = document.createElement("a");
+    link.download = "meine-vermoegensanalyse.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+    trackEvent("story_karte_download");
+  };
+
+  return (
+    <button onClick={erstelleUndSpeichern}
+      className="w-full flex items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-medium transition-colors"
+      style={{ background: "rgba(201,162,39,0.1)", border: "1px solid rgba(201,162,39,0.3)", color: GOLD_SOFT }}>
+      <Download size={16} /> Für Story speichern
+    </button>
+  );
+}
+
 function Ergebnis({ antworten, onNeu, telefonVorausgefuellt, onImpressum, onDatenschutz, leadId }) {
   const [kaufpreis, setKaufpreis] = useState(CONFIG.objekt.kaufpreisDefault);
   const [jahr, setJahr] = useState(CONFIG.projektion.betrachtungJahre);
@@ -2678,6 +2780,17 @@ function Ergebnis({ antworten, onNeu, telefonVorausgefuellt, onImpressum, onDate
   // Kosten des Zuwartens: derselbe Helfer wie im Telefon-Gate, nur mit den vom Nutzer gewählten Werten.
   const zuwartenDelta = schaetzeZuwartenProJahr(antworten, { kaufpreis, jahr });
 
+  // Für die Story-Karte: derselbe Belastung-vs-Tagesgeld-Vergleich wie im
+  // DreiWegeVergleich auf der Startseite, hier mit den persönlichen Werten.
+  const belastungMonat = Math.max(0, Math.round(-m.cfNachSteuer));
+  const tagesgeldVergleich = useMemo(() => {
+    const jahresbeitrag = belastungMonat * 12;
+    let summe = 0;
+    for (let j = 1; j <= jahr; j++) summe += jahresbeitrag * Math.pow(1 + CONFIG.vergleich.sparzins, jahr - j);
+    return summe;
+  }, [belastungMonat, jahr]);
+  const faktorVsTagesgeld = tagesgeldVergleich > 0 ? stand.nettovermoegen / tagesgeldVergleich : null;
+
   return (
     <div className="min-h-screen px-5 pt-10 pb-24 max-w-3xl mx-auto space-y-5">
       <StickyCTA sichtbar={heroVergangen && !ctaSichtbar} onClick={zumCta} />
@@ -2695,6 +2808,10 @@ function Ergebnis({ antworten, onNeu, telefonVorausgefuellt, onImpressum, onDate
         />
       </Reveal>
       </div>
+
+      <Reveal>
+        <StoryKarteButton nettovermoegen={stand.nettovermoegen} jahr={jahr} faktor={faktorVsTagesgeld} />
+      </Reveal>
 
       {/* Monatliche Betrachtung */}
       <Reveal>
@@ -3127,8 +3244,10 @@ function Datenschutz({ onZurueck }) {
         Zwingende gesetzliche Aufbewahrungsfristen bleiben unberührt.
         <br /><br />
         Die im Rahmen der Beispielrechnung abgefragten finanziellen Angaben (z. B. Einkommen, Eigenkapital,
-        Sparrate) werden ausschließlich in Ihrem Browser verarbeitet, um Ihnen die Beispielrechnung
-        anzuzeigen. Sie werden nicht an uns oder Dritte übermittelt.
+        Sparrate) werden zunächst ausschließlich in Ihrem Browser verarbeitet, um Ihnen die
+        Beispielrechnung anzuzeigen. Übermitteln Sie uns anschließend Ihre Kontaktdaten (z. B. über das
+        Telefon-Gate), werden diese Angaben zusammen mit Ihren Kontaktdaten bei uns gespeichert, damit wir
+        Ihnen ein zu Ihrer Situation passendes Beratungsgespräch anbieten können.
 
         <Untertitel>Anfrage per WhatsApp, E-Mail oder Telefon</Untertitel>
         Wenn Sie uns per WhatsApp, E-Mail oder Telefon kontaktieren, wird Ihre Anfrage inklusive aller
@@ -3137,7 +3256,27 @@ function Datenschutz({ onZurueck }) {
         Datenschutzhinweise von WhatsApp (Meta Platforms Ireland Limited).
       </Abschnitt>
 
-      <Abschnitt titel="5. Analyse & Tracking">
+      <Abschnitt titel="5. Selbstauskunft für die Finanzierungsanfrage">
+        Wenn Sie über einen von uns persönlich zugesandten Link eine Selbstauskunft ausfüllen, erheben wir
+        deutlich weitergehende Angaben als im übrigen Funnel – u. a. zu Ihrer Beschäftigung und Ihrem
+        Einkommen, weiteren Einkünften, bestehenden finanziellen Verpflichtungen sowie zu Ihrem Vermögen.
+        Diese Daten benötigen wir, um für Sie eine passende Immobilienfinanzierung vorzubereiten bzw. an
+        finanzierende Banken oder Finanzierungsvermittler weiterzugeben.
+        <br /><br />
+        Die Verarbeitung erfolgt auf Grundlage Ihrer Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die Sie
+        beim Absenden des Formulars erteilen, sowie zur Durchführung vorvertraglicher Maßnahmen auf Ihre
+        Anfrage hin (Art. 6 Abs. 1 lit. b DSGVO). Ihre Einwilligung können Sie jederzeit mit Wirkung für
+        die Zukunft widerrufen.
+        <br /><br />
+        Der Zugriff auf diese Daten ist innerhalb unseres Unternehmens auf die mit der Bearbeitung Ihrer
+        Finanzierungsanfrage befassten Personen beschränkt. Eine Weitergabe an Banken oder
+        Finanzierungsvermittler erfolgt nur, soweit dies für die Bearbeitung Ihrer Anfrage erforderlich ist
+        und Sie dem zugestimmt haben. Die Daten werden gelöscht, sobald sie für die Bearbeitung Ihrer
+        Anfrage nicht mehr erforderlich sind, spätestens jedoch nach Abschluss oder endgültigem Absagen des
+        Finanzierungsvorhabens, soweit keine gesetzlichen Aufbewahrungsfristen entgegenstehen.
+      </Abschnitt>
+
+      <Abschnitt titel="6. Analyse & Tracking">
         <Untertitel>Meta Pixel (Facebook/Instagram)</Untertitel>
         Sofern Sie eingewilligt haben, setzen wir auf dieser Website den Meta Pixel der Meta Platforms
         Ireland Limited, 4 Grand Canal Square, Grand Canal Harbour, Dublin 2, Irland ein. Damit können wir
@@ -3176,12 +3315,14 @@ function Datenschutz({ onZurueck }) {
  * wo Segment-Buttons mit groben Stufen nicht reichen und die echten Werte
  * eines konkreten Objekts eingetragen werden sollen (z. B. Steuersatz auf
  * 0,5% genau, oder die tatsächliche Kaltmiete eines Objekts). */
-/** Rundet auf 2 Nachkommastellen und zeigt Komma statt Punkt – deutsche
- * Schreibweise, wie sie beim Eintippen erwartet wird. */
+/** Rundet auf 2 Nachkommastellen und zeigt deutsche Schreibweise – Punkt als
+ * Tausendertrennzeichen, Komma als Dezimaltrennzeichen (z. B. 250000 →
+ * "250.000", 4.5 → "4,5"). parseZahlDE oben liest genau dieses Format
+ * beim erneuten Eintippen korrekt wieder ein. */
 function formatZahlDE(n) {
   if (!Number.isFinite(n)) return "";
   const gerundet = Math.round(n * 100) / 100;
-  return gerundet.toString().replace(".", ",");
+  return gerundet.toLocaleString("de-DE", { maximumFractionDigits: 2 });
 }
 /** Liest einen roh eingetippten Text als Zahl – deutsche Schreibweise:
  * Komma ist IMMER das Dezimaltrennzeichen. Ein Punkt wird nur dann als
@@ -3218,7 +3359,7 @@ function parseZahlDE(roh) {
  * wird stattdessen der rohe Tastatur-Text als eigener State geführt und erst
  * beim Verlassen des Felds sauber formatiert – während des Tippens bleibt
  * exakt stehen, was eingegeben wurde. */
-function ZahlenFeld({ label, value, onChange, suffix, min = 0, max }) {
+function ZahlenFeld({ label, value, onChange, suffix, min = 0, max, hinweis }) {
   const [text, setText] = useState(() => formatZahlDE(value));
   const fokussiert = useRef(false);
 
@@ -3262,6 +3403,12 @@ function ZahlenFeld({ label, value, onChange, suffix, min = 0, max }) {
           </span>
         )}
       </div>
+      {/* Live-Gegenprobe für Prozentfelder, deren Größenordnung man sonst
+          leicht falsch einschätzt (z. B. Euro-Betrag statt Prozentsatz
+          eingetippt) – macht so eine Verwechslung sofort sichtbar. */}
+      {hinweis && (
+        <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.3)" }}>{hinweis}</div>
+      )}
     </div>
   );
 }
@@ -3280,47 +3427,57 @@ function FeldGruppe({ titel, children }) {
  * Moment im Gespräch, in dem eine ganz bestimmte Zahl aus einem bestimmten
  * Jahr gefragt ist, statt nur des Meilensteins 10/20/30. */
 function Jahrestabelle({ reihe }) {
+  const [modus, setModus] = useState("monat"); // "jahr" | "monat"
+  const teiler = modus === "monat" ? 12 : 1;
+
   const spalten = [
-    { key: "kaltmiete", label: "Kaltmiete" },
-    { key: "zinsen", label: "Zinsen" },
-    { key: "tilgung", label: "Tilgung" },
-    { key: "restschuld", label: "Restschuld" },
-    { key: "afa", label: "AfA" },
-    { key: "steuerwirkung", label: "Steuerwirkung" },
-    { key: "cfNachSteuer", label: "CF n. Steuer" },
-    { key: "immobilienwert", label: "Immobilienwert" },
-    { key: "nettovermoegen", label: "Nettovermögen" },
+    { key: "kaltmiete", label: "Kaltmiete", fluss: true },
+    { key: "zinsen", label: "Zinsen", fluss: true },
+    { key: "tilgung", label: "Tilgung", fluss: true },
+    { key: "restschuld", label: "Restschuld", fluss: false },
+    { key: "afa", label: "AfA", fluss: true },
+    { key: "steuerwirkung", label: "Steuerwirkung", fluss: true },
+    { key: "cfNachSteuer", label: modus === "monat" ? "Cashflow nach Steuer" : "Cashflow nach Steuer (Jahr)", fluss: true },
+    { key: "immobilienwert", label: "Immobilienwert", fluss: false },
+    { key: "nettovermoegen", label: "Nettovermögen", fluss: false },
   ];
+
   return (
-    <div className="overflow-x-auto -mx-5 px-5">
-      <table className="text-xs border-collapse" style={{ minWidth: 700 }}>
-        <thead>
-          <tr style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
-            <th className="text-left py-2 pr-3 font-medium whitespace-nowrap" style={{ color: "rgba(255,255,255,0.4)" }}>Jahr</th>
-            {spalten.map((s) => (
-              <th key={s.key} className="text-right py-2 px-2 font-medium whitespace-nowrap" style={{ color: "rgba(255,255,255,0.4)" }}>
-                {s.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {reihe.map((r) => (
-            <tr key={r.jahr} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-              <td className="py-2 pr-3 text-left font-medium whitespace-nowrap" style={{ color: "rgba(255,255,255,0.6)" }}>{r.jahr}</td>
-              <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap">{eur(Math.round(r.kaltmiete))}</td>
-              <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap" style={{ color: "rgba(255,255,255,0.5)" }}>{eur(Math.round(r.zinsen))}</td>
-              <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap" style={{ color: "rgba(255,255,255,0.5)" }}>{eur(Math.round(r.tilgung))}</td>
-              <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap" style={{ color: "rgba(255,255,255,0.5)" }}>{eur(Math.round(r.restschuld))}</td>
-              <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap" style={{ color: r.afa > 0 ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.25)" }}>{eur(Math.round(r.afa))}</td>
-              <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap" style={{ color: r.steuerwirkung >= 0 ? GREEN : "#FCA5A5" }}>{eur(Math.round(r.steuerwirkung))}</td>
-              <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap" style={{ color: r.cfNachSteuer >= 0 ? GREEN : "#FCA5A5" }}>{eur(Math.round(r.cfNachSteuer))}</td>
-              <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap">{eur(Math.round(r.immobilienwert))}</td>
-              <td className="py-2 px-2 text-right tabular-nums font-medium whitespace-nowrap" style={{ color: GOLD_SOFT }}>{eur(Math.round(r.nettovermoegen))}</td>
+    <div>
+      <div className="mb-4">
+        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>Ansicht</div>
+        <Segment optionen={[{ id: "monat", label: "Pro Monat" }, { id: "jahr", label: "Pro Jahr" }]} wert={modus} onChange={setModus} />
+      </div>
+      <div className="overflow-x-auto -mx-5 px-5">
+        <table className="text-xs border-collapse" style={{ minWidth: 800 }}>
+          <thead>
+            <tr style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
+              <th className="text-left py-2 pr-3 font-medium whitespace-nowrap" style={{ color: "rgba(255,255,255,0.4)" }}>Jahr</th>
+              {spalten.map((s) => (
+                <th key={s.key} className="text-right py-2 px-2 font-medium whitespace-nowrap" style={{ color: "rgba(255,255,255,0.4)" }}>
+                  {s.label}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {reihe.map((r) => (
+              <tr key={r.jahr} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                <td className="py-2 pr-3 text-left font-medium whitespace-nowrap" style={{ color: "rgba(255,255,255,0.6)" }}>{r.jahr}</td>
+                <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap">{eur(Math.round(r.kaltmiete / teiler))}</td>
+                <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap" style={{ color: "rgba(255,255,255,0.5)" }}>{eur(Math.round(r.zinsen / teiler))}</td>
+                <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap" style={{ color: "rgba(255,255,255,0.5)" }}>{eur(Math.round(r.tilgung / teiler))}</td>
+                <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap" style={{ color: "rgba(255,255,255,0.5)" }}>{eur(Math.round(r.restschuld))}</td>
+                <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap" style={{ color: r.afa > 0 ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.25)" }}>{eur(Math.round(r.afa / teiler))}</td>
+                <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap" style={{ color: r.steuerwirkung >= 0 ? GREEN : "#FCA5A5" }}>{eur(Math.round(r.steuerwirkung / teiler))}</td>
+                <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap" style={{ color: r.cfNachSteuer >= 0 ? GREEN : "#FCA5A5" }}>{eur(Math.round(r.cfNachSteuer / teiler))}</td>
+                <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap">{eur(Math.round(r.immobilienwert))}</td>
+                <td className="py-2 px-2 text-right tabular-nums font-medium whitespace-nowrap" style={{ color: GOLD_SOFT }}>{eur(Math.round(r.nettovermoegen))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -3334,38 +3491,122 @@ function Jahrestabelle({ reihe }) {
  * Steuersatz des Kunden. Optional mit Vorlage aus einem Lead – dann sind
  * Steuersatz und Eigenkapitaleinsatz schon anhand seiner Antworten geschätzt
  * und müssen nur noch geprüft/angepasst werden. */
-function AnalyseTool({ initialLead, onVorlageEntfernen }) {
-  // Objektdaten – Startwerte aus CONFIG, aber vollständig frei editierbar,
-  // weil es hier um ein konkretes, reales Objekt geht und nicht um die
-  // pauschale Beispielrechnung im öffentlichen Funnel.
-  const [kaufpreis, setKaufpreis] = useState(CONFIG.objekt.kaufpreisDefault);
-  const [kaltmieteMonat, setKaltmieteMonat] = useState(
-    Math.round((CONFIG.objekt.kaufpreisDefault * CONFIG.objekt.bruttomietrendite) / 12)
-  );
-  const [nichtUmlagefaehigMonat, setNichtUmlagefaehigMonat] = useState(CONFIG.objekt.nichtUmlagefaehigMonat);
-  const [kaufnebenkostenProzent, setKaufnebenkostenProzent] = useState(CONFIG.objekt.kaufnebenkostenQuote * 100);
-  const [gebaeudeanteilProzent, setGebaeudeanteilProzent] = useState(CONFIG.objekt.gebaeudeanteil * 100);
-  const [afaSatzProzent, setAfaSatzProzent] = useState(CONFIG.objekt.afaSatz * 100);
-  const [afaDauerJahre, setAfaDauerJahre] = useState(CONFIG.objekt.afaDauerJahre);
-  const [mietsteigerungProzent, setMietsteigerungProzent] = useState(CONFIG.objekt.mietsteigerung * 100);
-  const [wertsteigerungProzent, setWertsteigerungProzent] = useState(CONFIG.projektion.wertsteigerung * 100);
-  const [sollzinsProzent, setSollzinsProzent] = useState(CONFIG.finanzierung.sollzins * 100);
-  const [tilgungProzent, setTilgungProzent] = useState(CONFIG.finanzierung.anfangstilgung * 100);
+function AnalyseTool({ initialLead, onVorlageEntfernen, accessToken }) {
+  // Mehrere benannte Fallstudien pro Kunde statt nur einer – dieselbe
+  // jsonb-Spalte "analyse" hält jetzt ein Array statt eines einzelnen
+  // Objekts, keine neue Migration nötig. Beim Öffnen wird die zuletzt
+  // gespeicherte Fallstudie automatisch vorgeladen.
+  const analysen = useMemo(() => initialLead?.analyse || [], [initialLead]);
+  const [aktiveId, setAktiveId] = useState(() => analysen[0]?.id ?? null);
+  const [name, setName] = useState(() => analysen[0]?.name ?? "");
+  const aktiveAnalyse = analysen.find((a) => a.id === aktiveId) || null;
 
-  // Kundendaten – bei Vorlage aus einem Lead vorausgefüllt, sonst Standardwerte.
+  // Objektdaten – Startwerte aus der aktiven Fallstudie, sonst CONFIG,
+  // vollständig frei editierbar.
+  const [kaufpreis, setKaufpreis] = useState(aktiveAnalyse?.kaufpreis ?? CONFIG.objekt.kaufpreisDefault);
+  const [kaltmieteMonat, setKaltmieteMonat] = useState(
+    aktiveAnalyse?.kaltmieteMonat ?? Math.round((CONFIG.objekt.kaufpreisDefault * CONFIG.objekt.bruttomietrendite) / 12)
+  );
+  const [nichtUmlagefaehigMonat, setNichtUmlagefaehigMonat] = useState(aktiveAnalyse?.nichtUmlagefaehigMonat ?? CONFIG.objekt.nichtUmlagefaehigMonat);
+  const [kaufnebenkostenProzent, setKaufnebenkostenProzent] = useState(aktiveAnalyse?.kaufnebenkostenProzent ?? CONFIG.objekt.kaufnebenkostenQuote * 100);
+  const [gebaeudeanteilProzent, setGebaeudeanteilProzent] = useState(aktiveAnalyse?.gebaeudeanteilProzent ?? CONFIG.objekt.gebaeudeanteil * 100);
+  const [afaSatzProzent, setAfaSatzProzent] = useState(aktiveAnalyse?.afaSatzProzent ?? CONFIG.objekt.afaSatz * 100);
+  const [afaDauerJahre, setAfaDauerJahre] = useState(aktiveAnalyse?.afaDauerJahre ?? CONFIG.objekt.afaDauerJahre);
+  const [mietsteigerungProzent, setMietsteigerungProzent] = useState(aktiveAnalyse?.mietsteigerungProzent ?? CONFIG.objekt.mietsteigerung * 100);
+  const [wertsteigerungProzent, setWertsteigerungProzent] = useState(aktiveAnalyse?.wertsteigerungProzent ?? CONFIG.projektion.wertsteigerung * 100);
+  const [sollzinsProzent, setSollzinsProzent] = useState(aktiveAnalyse?.sollzinsProzent ?? CONFIG.finanzierung.sollzins * 100);
+  const [tilgungProzent, setTilgungProzent] = useState(aktiveAnalyse?.tilgungProzent ?? CONFIG.finanzierung.anfangstilgung * 100);
+
+  // Kundendaten – aktive Fallstudie geht vor der groben Schätzung aus dem
+  // Lead, die wiederum vor dem CONFIG-Standardwert geht.
   const [steuersatzProzent, setSteuersatzProzent] = useState(() => {
+    if (aktiveAnalyse?.steuersatzProzent != null) return aktiveAnalyse.steuersatzProzent;
     if (initialLead?.brutto) {
       return Math.round(grenzsteuersatz(initialLead.brutto, initialLead.status || "angestellt") * 1000) / 10;
     }
-    return 35;
+    return 42;
   });
   const [ekEinsatz, setEkEinsatz] = useState(() => {
+    if (aktiveAnalyse?.ekEinsatz != null) return aktiveAnalyse.ekEinsatz;
     if (initialLead?.eigenkapital) return Math.min(initialLead.eigenkapital, 500000);
     return 0;
   });
 
-  const [jahr, setJahr] = useState(20);
+  const [jahr, setJahr] = useState(aktiveAnalyse?.jahr ?? 20);
   const [zeigeTabelle, setZeigeTabelle] = useState(false);
+  const [speicherStatus, setSpeicherStatus] = useState(""); // "" | "speichert" | "gespeichert" | "fehler"
+
+  /** Setzt alle Felder auf die Werte einer gespeicherten Fallstudie zurück
+   * und markiert sie als aktiv – weitere Speicherungen aktualisieren dann
+   * genau diese, statt eine neue anzulegen. */
+  const ladeFallstudie = (a) => {
+    setAktiveId(a.id); setName(a.name || "");
+    setKaufpreis(a.kaufpreis ?? CONFIG.objekt.kaufpreisDefault);
+    setKaltmieteMonat(a.kaltmieteMonat ?? 0);
+    setNichtUmlagefaehigMonat(a.nichtUmlagefaehigMonat ?? CONFIG.objekt.nichtUmlagefaehigMonat);
+    setKaufnebenkostenProzent(a.kaufnebenkostenProzent ?? CONFIG.objekt.kaufnebenkostenQuote * 100);
+    setGebaeudeanteilProzent(a.gebaeudeanteilProzent ?? CONFIG.objekt.gebaeudeanteil * 100);
+    setAfaSatzProzent(a.afaSatzProzent ?? CONFIG.objekt.afaSatz * 100);
+    setAfaDauerJahre(a.afaDauerJahre ?? CONFIG.objekt.afaDauerJahre);
+    setMietsteigerungProzent(a.mietsteigerungProzent ?? CONFIG.objekt.mietsteigerung * 100);
+    setWertsteigerungProzent(a.wertsteigerungProzent ?? CONFIG.projektion.wertsteigerung * 100);
+    setSollzinsProzent(a.sollzinsProzent ?? CONFIG.finanzierung.sollzins * 100);
+    setTilgungProzent(a.tilgungProzent ?? CONFIG.finanzierung.anfangstilgung * 100);
+    setSteuersatzProzent(a.steuersatzProzent ?? 42);
+    setEkEinsatz(a.ekEinsatz ?? 0);
+    setJahr(a.jahr ?? 20);
+  };
+
+  /** Setzt alle Felder auf die Standardwerte zurück, um eine neue,
+   * unabhängige Fallstudie für denselben Kunden zu beginnen. */
+  const neueFallstudie = () => {
+    setAktiveId(null); setName("");
+    setKaufpreis(CONFIG.objekt.kaufpreisDefault);
+    setKaltmieteMonat(Math.round((CONFIG.objekt.kaufpreisDefault * CONFIG.objekt.bruttomietrendite) / 12));
+    setNichtUmlagefaehigMonat(CONFIG.objekt.nichtUmlagefaehigMonat);
+    setKaufnebenkostenProzent(CONFIG.objekt.kaufnebenkostenQuote * 100);
+    setGebaeudeanteilProzent(CONFIG.objekt.gebaeudeanteil * 100);
+    setAfaSatzProzent(CONFIG.objekt.afaSatz * 100);
+    setAfaDauerJahre(CONFIG.objekt.afaDauerJahre);
+    setMietsteigerungProzent(CONFIG.objekt.mietsteigerung * 100);
+    setWertsteigerungProzent(CONFIG.projektion.wertsteigerung * 100);
+    setSollzinsProzent(CONFIG.finanzierung.sollzins * 100);
+    setTilgungProzent(CONFIG.finanzierung.anfangstilgung * 100);
+    setJahr(20);
+  };
+
+  /** Speichert die aktuell eingestellten Werte als Fallstudie unter dem
+   * Namen im Namensfeld – aktualisiert die aktive Fallstudie, falls eine
+   * geladen ist, sonst legt sie eine neue an. */
+  const speichernFuerKunden = async () => {
+    if (!initialLead || !name.trim()) return;
+    setSpeicherStatus("speichert");
+    const daten = {
+      id: aktiveId || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: name.trim(), erstelltAm: aktiveAnalyse?.erstelltAm || new Date().toISOString(),
+      kaufpreis, kaltmieteMonat, nichtUmlagefaehigMonat, kaufnebenkostenProzent,
+      gebaeudeanteilProzent, afaSatzProzent, afaDauerJahre, mietsteigerungProzent,
+      wertsteigerungProzent, sollzinsProzent, tilgungProzent, steuersatzProzent, ekEinsatz, jahr,
+    };
+    const neueListe = aktiveId
+      ? analysen.map((a) => (a.id === aktiveId ? daten : a))
+      : [daten, ...analysen];
+    const ok = await speichereLead(
+      { id: initialLead.id, analyse: neueListe, analyseAktualisiertAm: new Date().toISOString() },
+      accessToken
+    );
+    if (ok) setAktiveId(daten.id);
+    setSpeicherStatus(ok ? "gespeichert" : "fehler");
+    setTimeout(() => setSpeicherStatus(""), 2500);
+  };
+
+  /** Löscht eine Fallstudie aus der Liste (nach Bestätigung). */
+  const loescheFallstudie = async (id) => {
+    if (!window.confirm("Diese Fallstudie wirklich löschen?")) return;
+    const neueListe = analysen.filter((a) => a.id !== id);
+    await speichereLead({ id: initialLead.id, analyse: neueListe, analyseAktualisiertAm: new Date().toISOString() }, accessToken);
+    if (aktiveId === id) neueFallstudie();
+  };
 
   const bruttomietrendite = kaufpreis > 0 ? (kaltmieteMonat * 12) / kaufpreis : 0;
 
@@ -3396,17 +3637,59 @@ function AnalyseTool({ initialLead, onVorlageEntfernen }) {
   return (
     <div className="space-y-5">
       {initialLead && (
-        <div className="rounded-2xl p-4 flex items-center justify-between gap-3" style={{ background: "rgba(201,162,39,0.1)", border: "1px solid rgba(201,162,39,0.3)" }}>
-          <div className="text-sm">
-            <span style={{ color: "rgba(255,255,255,0.5)" }}>Vorlage übernommen für </span>
-            <span className="font-medium">{initialLead.vorname} {initialLead.nachname}</span>
-            <span style={{ color: "rgba(255,255,255,0.4)" }}> – Steuersatz & Eigenkapital geschätzt, unten prüfen/anpassen.</span>
+        <div className="rounded-2xl p-4" style={{ background: "rgba(201,162,39,0.1)", border: "1px solid rgba(201,162,39,0.3)" }}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm">
+              <span style={{ color: "rgba(255,255,255,0.5)" }}>Fallstudien für </span>
+              <span className="font-medium">{initialLead.vorname} {initialLead.nachname}</span>
+            </div>
+            {onVorlageEntfernen && (
+              <button onClick={onVorlageEntfernen} className="shrink-0 p-1.5 rounded-full" style={{ color: "rgba(255,255,255,0.4)" }} aria-label="Vorlage entfernen">
+                <X size={14} />
+              </button>
+            )}
           </div>
-          {onVorlageEntfernen && (
-            <button onClick={onVorlageEntfernen} className="shrink-0 p-1.5 rounded-full" style={{ color: "rgba(255,255,255,0.4)" }} aria-label="Vorlage entfernen">
-              <X size={14} />
-            </button>
+
+          {analysen.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {analysen.map((a) => (
+                <div key={a.id} className="flex items-center gap-1 rounded-full pl-3 pr-1 py-1 text-xs"
+                  style={{
+                    background: a.id === aktiveId ? "rgba(201,162,39,0.28)" : "rgba(255,255,255,0.06)",
+                    border: `1px solid ${a.id === aktiveId ? "rgba(201,162,39,0.5)" : HAIRLINE}`,
+                    color: a.id === aktiveId ? GOLD_SOFT : "rgba(255,255,255,0.7)",
+                  }}>
+                  <button onClick={() => ladeFallstudie(a)} className="font-medium">{a.name || "Ohne Namen"}</button>
+                  <button onClick={() => loescheFallstudie(a.id)} className="p-1 rounded-full" style={{ color: "rgba(255,255,255,0.35)" }} aria-label="Fallstudie löschen">
+                    <X size={11} />
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
+
+          <div className="flex gap-2 mt-3">
+            <input
+              type="text" value={name} onChange={(e) => setName(e.target.value)}
+              placeholder="Name dieser Fallstudie, z. B. Whg. Musterstraße"
+              className="flex-1 min-w-0 rounded-xl px-3.5 py-2.5 text-sm outline-none"
+              style={{ background: "rgba(0,0,0,0.3)", border: `1px solid ${HAIRLINE}`, color: "#fff" }}
+            />
+            {aktiveId && (
+              <button onClick={neueFallstudie} className="shrink-0 rounded-xl px-3.5 text-xs font-medium"
+                style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${HAIRLINE}`, color: "rgba(255,255,255,0.7)" }}>
+                + Neu
+              </button>
+            )}
+          </div>
+          <button onClick={speichernFuerKunden} disabled={speicherStatus === "speichert" || !name.trim()}
+            className="w-full mt-2 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-medium transition-opacity"
+            style={{ background: "rgba(201,162,39,0.18)", border: "1px solid rgba(201,162,39,0.4)", color: GOLD_SOFT, opacity: (speicherStatus === "speichert" || !name.trim()) ? 0.6 : 1 }}>
+            {speicherStatus === "speichert" && "Wird gespeichert …"}
+            {speicherStatus === "gespeichert" && "Gespeichert ✓"}
+            {speicherStatus === "fehler" && "Fehlgeschlagen – nochmal versuchen"}
+            {speicherStatus === "" && (aktiveId ? "Fallstudie aktualisieren" : "Als neue Fallstudie speichern")}
+          </button>
         </div>
       )}
 
@@ -3420,12 +3703,14 @@ function AnalyseTool({ initialLead, onVorlageEntfernen }) {
           <ZahlenFeld label="Kaufpreis" value={kaufpreis} onChange={setKaufpreis} suffix="€" step={1000} />
           <ZahlenFeld label="Kaltmiete" value={kaltmieteMonat} onChange={setKaltmieteMonat} suffix="€/Monat" step={10} />
           <ZahlenFeld label="Nicht umlagefähiges Hausgeld" value={nichtUmlagefaehigMonat} onChange={setNichtUmlagefaehigMonat} suffix="€/Monat" step={5} />
-          <ZahlenFeld label="Kaufnebenkosten" value={kaufnebenkostenProzent} onChange={setKaufnebenkostenProzent} suffix="%" step={0.5} />
+          <ZahlenFeld label="Kaufnebenkosten" value={kaufnebenkostenProzent} onChange={setKaufnebenkostenProzent} suffix="%" step={0.5}
+            hinweis={`≈ ${eur(Math.round(kaufpreis * kaufnebenkostenProzent / 100))}`} />
         </FeldGruppe>
 
         <FeldGruppe titel="Abschreibung (AfA)">
           <ZahlenFeld label="Gebäudeanteil" value={gebaeudeanteilProzent} onChange={setGebaeudeanteilProzent} suffix="%" step={1} max={100} />
-          <ZahlenFeld label="AfA-Satz" value={afaSatzProzent} onChange={setAfaSatzProzent} suffix="%" step={0.1} />
+          <ZahlenFeld label="AfA-Satz" value={afaSatzProzent} suffix="%" step={0.1}
+            onChange={(v) => { setAfaSatzProzent(v); if (v > 0) setAfaDauerJahre(Math.round(100 / v)); }} />
           <ZahlenFeld label="AfA-Dauer" value={afaDauerJahre} onChange={setAfaDauerJahre} suffix="Jahre" step={1} />
         </FeldGruppe>
 
@@ -3894,7 +4179,7 @@ function CRM({ onZurueck, accessToken }) {
         ))}
       </div>
 
-      {tab === "analyse" && <AnalyseTool initialLead={analyseVorlage} onVorlageEntfernen={() => setAnalyseVorlage(null)} />}
+      {tab === "analyse" && <AnalyseTool initialLead={analyseVorlage} onVorlageEntfernen={() => setAnalyseVorlage(null)} accessToken={accessToken} />}
 
       {tab === "leads" && (
         <>
@@ -4298,6 +4583,58 @@ function KontaktFormular({ telefonVorausgefuellt = "", vornameVorausgefuellt = "
   );
 }
 
+/** Öffentliche, blanko Version des internen Objekt-Rechners – exakt dieselbe
+ * Komponente wie im CRM, nur ohne Kunden-Kontext (kein initialLead), daher
+ * blendet sich das Speichern/Kunden-Banner automatisch aus. Nichts wird
+ * hier gespeichert, reines Durchprobieren für Besucher. */
+function RechnerSeite({ onZurueck, onStart }) {
+  return (
+    <div className="min-h-screen px-5 pt-10 pb-20 max-w-2xl mx-auto">
+      <button onClick={onZurueck} className="text-sm mb-6 -ml-1 p-1 flex items-center gap-1" style={{ color: "rgba(255,255,255,0.5)" }}>
+        <ArrowLeft size={15} /> Zurück
+      </button>
+      <div className="mb-6">
+        <Eyebrow>Kostenloser Rechner</Eyebrow>
+        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+          <Calculator size={20} color={GOLD_SOFT} /> Immobilien-Kalkulator
+        </h1>
+        <p className="text-sm mt-2" style={{ color: "rgba(255,255,255,0.5)" }}>
+          Spiel frei mit den Zahlen – Kaufpreis, Miete, Zins, Tilgung, Steuersatz, alles live
+          durchgerechnet. Nichts davon wird gespeichert.
+        </p>
+      </div>
+      <AnalyseTool />
+
+      <div className="rounded-3xl p-7 text-center mt-6" style={{
+        background: "linear-gradient(165deg, rgba(201,162,39,0.13), rgba(255,255,255,0.025) 55%)",
+        border: "1px solid rgba(201,162,39,0.26)",
+      }}>
+        <h2 className="text-xl font-semibold tracking-tight">Deine Zahlen passen? Lass uns drüber sprechen.</h2>
+        <p className="text-sm mt-2 max-w-sm mx-auto" style={{ color: "rgba(255,255,255,0.55)" }}>
+          Kein festes Angebot, nur ein kurzes, unverbindliches Gespräch über deine konkrete Situation.
+        </p>
+        <a href={waLink("Hallo Philipp, ich habe mit dem Rechner gespielt und würde gerne einen Termin vereinbaren.")}
+          target="_blank" rel="noopener noreferrer"
+          onClick={() => trackEvent("rechner_cta_click")}
+          className="inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold mt-5"
+          style={{ background: `linear-gradient(135deg, ${GOLD_SOFT}, ${GOLD})`, color: "#171205" }}>
+          Jetzt Termin vereinbaren <ArrowRight size={16} />
+        </a>
+
+        {onStart && (
+          <div className="mt-4">
+            <button onClick={() => { trackEvent("rechner_zu_analyse_click"); onStart(); }}
+              className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-medium"
+              style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${HAIRLINE}`, color: "rgba(255,255,255,0.75)" }}>
+              Oder: Jetzt Vermögensanalyse starten <ArrowRight size={15} />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ================================================================== App */
 const START = {
   vorname: "", nachname: "",
@@ -4309,7 +4646,9 @@ const START = {
 export default function Vermoegenskompass() {
   const [phase, setPhase] = useState(() => {
     if (typeof window === "undefined") return "start";
+    if (window.location.pathname === "/rechner") return "rechner";
     if (window.location.hash === "#crm") return "crm";
+    if (window.location.hash === "#rechner") return "rechner";
     if (window.location.hash.startsWith("#selbstauskunft-")) return "selbstauskunft";
     return "start";
   });
@@ -4350,7 +4689,7 @@ export default function Vermoegenskompass() {
         }} />
       )}
       <div className="relative">
-        {phase === "start" && <Landing onStart={() => setPhase("quiz")} onImpressum={oeffneImpressum} onDatenschutz={oeffneDatenschutz} onCrm={() => setPhase("crm")} />}
+        {phase === "start" && <Landing onStart={() => setPhase("quiz")} onImpressum={oeffneImpressum} onDatenschutz={oeffneDatenschutz} onCrm={() => setPhase("crm")} onRechner={() => setPhase("rechner")} />}
         {phase === "quiz" && (
           <Quiz antworten={antworten} setAntworten={setAntworten}
             onFertig={() => setPhase("analyse")} onZurueck={() => setPhase("start")} />
@@ -4393,6 +4732,12 @@ export default function Vermoegenskompass() {
           )
         )}
         {phase === "selbstauskunft" && <Selbstauskunft leadId={selbstauskunftLeadId} />}
+        {phase === "rechner" && (
+          <RechnerSeite onZurueck={() => {
+            if (typeof window !== "undefined") window.location.hash = "";
+            setPhase("start");
+          }} onStart={() => setPhase("quiz")} />
+        )}
       </div>
     </div>
   );
