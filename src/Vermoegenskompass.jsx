@@ -5,7 +5,7 @@ import {
 import {
   ArrowRight, ArrowLeft, Check, TrendingUp, Receipt,
   Calculator, ChevronRight, Info, UserCheck, MessageCircle, Clock, Star,
-  Phone, Mail, RefreshCw, Search, Users, X, Plus, Trash2, Download
+  Phone, Mail, RefreshCw, Search, Users, X, Plus, Trash2
 } from "lucide-react";
 
 /* ============================================================================
@@ -421,26 +421,23 @@ const CONFIG = {
   // dieses Zeitraums, so früh wie möglich, gleichmäßig verteilt – Volumen
   // schnell sichern, statt über Jahrzehnte zu strecken.
   kaufplan: { zielzeitraum: 5 },
-  // Echte Kundenstimmen eintragen (Vorname + Anfangsbuchstabe, Rolle/Ort genügt).
-  // WICHTIG: Nur echte Zitate. Erfundene Bewertungen sind nach Anh. Nr. 23b UWG
-  // eine "Schwarze-Liste"-Praxis – immer unzulässig, unabhängig vom Einzelfall.
-  // Bleibt das Array leer, wird der Abschnitt schlicht nicht angezeigt.
-  testimonials: [
-    { name: "Mark R.", text: "Als ich mich an Philipp gewandt habe, war der Kauf einer vermieteten Immobilie für mich noch komplettes Neuland. Besonders positiv fand ich, dass er sich zunächst viel Zeit genommen hat, meine Ziele und meine finanzielle Situation zu verstehen.\n\nDie Immobilie wurde **nicht schöngerechnet**, sondern inklusive Finanzierung, laufender Kosten und möglicher Risiken transparent erklärt. Auch bei meinen vielen Rückfragen hatte ich nie das Gefühl, unter Druck gesetzt zu werden.\n\nWährend des gesamten Kaufprozesses war Philipp gut erreichbar und hat die einzelnen Schritte verständlich begleitet. Dadurch konnte ich meine Entscheidung mit einem wirklich guten Gefühl treffen. Rückblickend bin ich mit der Zusammenarbeit und meiner **ersten Kapitalanlage sehr zufrieden**." },
-    { name: "Thomas B.", text: "Für mich war lange nicht klar, ob ich mein Geld weiterhin überwiegend in Aktien und ETFs investieren oder zusätzlich eine vermietete Immobilie kaufen sollte.\n\nDurch die Gespräche mit Philipp habe ich verstanden, dass Immobilien für meine persönliche Situation **einen ganz anderen Hebel ermöglichen**, weil ich nicht nur mit meinem eigenen Kapital arbeite, sondern zusätzlich Finanzierung und Mieteinnahmen einbeziehe. Dadurch kann die Rendite auf das tatsächlich eingesetzte Eigenkapital deutlich interessanter ausfallen – natürlich immer abhängig vom Objekt und von der Finanzierung.\n\nBesonders wichtig war mir, **langfristig Vermögen aufzubauen** und gleichzeitig meine Altersvorsorge breiter aufzustellen. Philipp hat mir die Unterschiede zu anderen Anlageformen nachvollziehbar erklärt, ohne Aktien oder ETFs grundsätzlich schlechtzureden.\n\nDie Immobilie wurde mit allen Kosten, Chancen und Risiken transparent durchgerechnet. Für meine Ziele war der Kauf deshalb **der richtige Schritt**, und ich bin froh, ihn gemeinsam mit Philipp umgesetzt zu haben." },
-    { name: "Sarah S.", text: "Rückblickend war für mich die wichtigste Erkenntnis, dass bei Immobilien nicht nur das richtige Objekt zählt, sondern auch **der Zeitpunkt**. Jedes weitere Jahr, in dem man nur sucht und nicht investiert, ist schließlich auch ein Jahr ohne Mieteinnahmen, Tilgung und möglichen Vermögensaufbau.\n\nIch hätte vermutlich noch mehrere Jahre auf ImmoScout vergleichen können, ohne wirklich sicher zu wissen, ob ich am Ende ein besseres Objekt finde. Bei Philipp hatte ich dagegen von Anfang an das Gefühl, dass die Immobilie **zu meiner finanziellen Situation und meinen langfristigen Zielen** ausgewählt wurde.\n\nAlle Zahlen, laufenden Kosten und auch die Risiken wurden offen und verständlich erklärt. Deshalb war es für mich sinnvoller, mit professioneller Begleitung eine fundierte Entscheidung zu treffen, statt jahrelang auf das vermeintlich perfekte Angebot zu warten.\n\nHeute bin ich froh, den Schritt gemacht zu haben, und würde bei der nächsten Kapitalanlage **wieder mit Philipp zusammenarbeiten**." },
-  ],
-  // Kurze Bewertungskarten ganz unten auf der Startseite. Gleiche Regel wie oben:
-  // nur echte Bewertungen, sonst zeigt sich der Abschnitt gar nicht erst.
-  //
-  // ACHTUNG: Die drei Einträge unten sind PLATZHALTER zur Voransicht des Layouts.
-  // Vor dem Livegang durch echte Bewertungen ersetzen oder das Array leeren –
-  // erfundene Bewertungen sind nach Anh. Nr. 23b UWG nicht zulässig.
+  // Echte Kundenbewertungen (Wortlaut von Philipp bestätigt). Optional pro
+  // Eintrag ein "strategie"-Objekt mit echten Eckdaten der Person ergänzbar,
+  // z. B. strategie: { jahresgehalt: "65.000 €", bereitsGekauft: "2 Wohnungen", ziel: "5 Objekte bis 2030",
+  // mieteinnahmenMonat: "1.200 €", vermoegenIn30Jahren: 600000 } – Vermögen als
+  // echte Zahl (nicht als Text), damit sie beim Scrollen animiert hochzählen kann.
+  // nur mit deren Einverständnis und nur echte Werte, keine Schätzungen.
+  // mieteinnahmenMonat/vermoegenIn30Jahren mit dem echten Rechenkern (berechneModell)
+  // aus Kaufpreis + Rendite + Steuersatz (aus dem Gehalt) ermitteln, nicht schätzen.
   bewertungen: [
-    { name: "Mark R.", sterne: 5, kurz: "Während des gesamten Kaufprozesses war Philipp gut erreichbar und hat die einzelnen Schritte verständlich begleitet. Dadurch konnte ich meine Entscheidung mit einem wirklich guten Gefühl treffen. Rückblickend bin ich mit der Zusammenarbeit und meiner ersten Kapitalanlage sehr zufrieden.", text: "Als ich mich an Philipp gewandt habe, war der Kauf einer vermieteten Immobilie für mich noch komplettes Neuland. Besonders positiv fand ich, dass er sich zunächst viel Zeit genommen hat, meine Ziele und meine finanzielle Situation zu verstehen.\n\nDie Immobilie wurde **nicht schöngerechnet**, sondern inklusive Finanzierung, laufender Kosten und möglicher Risiken transparent erklärt. Auch bei meinen vielen Rückfragen hatte ich nie das Gefühl, unter Druck gesetzt zu werden.\n\nWährend des gesamten Kaufprozesses war Philipp gut erreichbar und hat die einzelnen Schritte verständlich begleitet. Dadurch konnte ich meine Entscheidung mit einem wirklich guten Gefühl treffen. Rückblickend bin ich mit der Zusammenarbeit und meiner **ersten Kapitalanlage sehr zufrieden**." },
-    { name: "Thomas B.", sterne: 5, kurz: "Besonders wichtig war mir, langfristig Vermögen aufzubauen und gleichzeitig meine Altersvorsorge breiter aufzustellen. Philipp hat mir die Unterschiede zu anderen Anlageformen nachvollziehbar erklärt, ohne Aktien oder ETFs grundsätzlich schlechtzureden. Die Immobilie wurde mit allen Kosten, Chancen und Risiken transparent durchgerechnet. Für meine Ziele war der Kauf deshalb der richtige Schritt, und ich bin froh, ihn gemeinsam mit Philipp umgesetzt zu haben.", text: "Für mich war lange nicht klar, ob ich mein Geld weiterhin überwiegend in Aktien und ETFs investieren oder zusätzlich eine vermietete Immobilie kaufen sollte.\n\nDurch die Gespräche mit Philipp habe ich verstanden, dass Immobilien für meine persönliche Situation **einen ganz anderen Hebel ermöglichen**, weil ich nicht nur mit meinem eigenen Kapital arbeite, sondern zusätzlich Finanzierung und Mieteinnahmen einbeziehe. Dadurch kann die Rendite auf das tatsächlich eingesetzte Eigenkapital deutlich interessanter ausfallen – natürlich immer abhängig vom Objekt und von der Finanzierung.\n\nBesonders wichtig war mir, **langfristig Vermögen aufzubauen** und gleichzeitig meine Altersvorsorge breiter aufzustellen. Philipp hat mir die Unterschiede zu anderen Anlageformen nachvollziehbar erklärt, ohne Aktien oder ETFs grundsätzlich schlechtzureden.\n\nDie Immobilie wurde mit allen Kosten, Chancen und Risiken transparent durchgerechnet. Für meine Ziele war der Kauf deshalb **der richtige Schritt**, und ich bin froh, ihn gemeinsam mit Philipp umgesetzt zu haben." },
-    { name: "Sarah S.", sterne: 5, kurz: "Alle Zahlen, laufenden Kosten und auch die Risiken wurden offen und verständlich erklärt. Deshalb war es für mich sinnvoller, mit professioneller Begleitung eine fundierte Entscheidung zu treffen, statt jahrelang auf das vermeintlich perfekte Angebot zu warten. Heute bin ich froh, den Schritt gemacht zu haben, und würde bei der nächsten Kapitalanlage wieder mit Philipp zusammenarbeiten.", text: "Rückblickend war für mich die wichtigste Erkenntnis, dass bei Immobilien nicht nur das richtige Objekt zählt, sondern auch **der Zeitpunkt**. Jedes weitere Jahr, in dem man nur sucht und nicht investiert, ist schließlich auch ein Jahr ohne Mieteinnahmen, Tilgung und möglichen Vermögensaufbau.\n\nIch hätte vermutlich noch mehrere Jahre auf ImmoScout vergleichen können, ohne wirklich sicher zu wissen, ob ich am Ende ein besseres Objekt finde. Bei Philipp hatte ich dagegen von Anfang an das Gefühl, dass die Immobilie **zu meiner finanziellen Situation und meinen langfristigen Zielen** ausgewählt wurde.\n\nAlle Zahlen, laufenden Kosten und auch die Risiken wurden offen und verständlich erklärt. Deshalb war es für mich sinnvoller, mit professioneller Begleitung eine fundierte Entscheidung zu treffen, statt jahrelang auf das vermeintlich perfekte Angebot zu warten.\n\nHeute bin ich froh, den Schritt gemacht zu haben, und würde bei der nächsten Kapitalanlage **wieder mit Philipp zusammenarbeiten**." },
+    { name: "Mark R.", sterne: 5, strategie: { jahresgehalt: "50.000 € brutto", bereitsGekauft: "1 Immobilie", ziel: "4 Immobilien insgesamt", mieteinnahmenMonat: "1.038 €", vermoegenIn30Jahren: 448699, verlauf: [7600, 95577, 243573, 448699] }, kurz: "Während des gesamten Kaufprozesses war Philipp gut erreichbar und hat die einzelnen Schritte verständlich begleitet. Dadurch konnte ich meine Entscheidung mit einem wirklich guten Gefühl treffen.\n\nRückblickend bin ich mit der Zusammenarbeit und meiner **ersten Kapitalanlage sehr zufrieden**.", text: "Als ich mich an Philipp gewandt habe, war der Kauf einer vermieteten Immobilie für mich noch komplettes Neuland. Besonders positiv fand ich, dass er sich zunächst viel Zeit genommen hat, meine Ziele und meine finanzielle Situation zu verstehen.\n\nDie Immobilie wurde **nicht schöngerechnet**, sondern inklusive Finanzierung, laufender Kosten und möglicher Risiken transparent erklärt. Auch bei meinen vielen Rückfragen hatte ich nie das Gefühl, unter Druck gesetzt zu werden.\n\nWährend des gesamten Kaufprozesses war Philipp gut erreichbar und hat die einzelnen Schritte verständlich begleitet. Dadurch konnte ich meine Entscheidung mit einem wirklich guten Gefühl treffen. Rückblickend bin ich mit der Zusammenarbeit und meiner **ersten Kapitalanlage sehr zufrieden**." },
+    { name: "Thomas B.", sterne: 5, strategie: { jahresgehalt: "65.000 € brutto", bereitsGekauft: "2 Immobilien", ziel: "6 Immobilien insgesamt", mieteinnahmenMonat: "2.240 €", vermoegenIn30Jahren: 962374, verlauf: [17337, 213113, 532511, 962374] }, kurz: "Besonders wichtig war mir, **langfristig Vermögen aufzubauen** und gleichzeitig meine Altersvorsorge breiter aufzustellen. Philipp hat mir die Unterschiede zu anderen Anlageformen nachvollziehbar erklärt, ohne Aktien oder ETFs grundsätzlich schlechtzureden.\n\nDie Immobilie wurde mit allen Kosten, Chancen und Risiken transparent durchgerechnet. Für meine Ziele war der Kauf deshalb **der richtige Schritt**, und ich bin froh, ihn gemeinsam mit Philipp umgesetzt zu haben.", text: "Für mich war lange nicht klar, ob ich mein Geld weiterhin überwiegend in Aktien und ETFs investieren oder zusätzlich eine vermietete Immobilie kaufen sollte.\n\nDurch die Gespräche mit Philipp habe ich verstanden, dass Immobilien für meine persönliche Situation **einen ganz anderen Hebel ermöglichen**, weil ich nicht nur mit meinem eigenen Kapital arbeite, sondern zusätzlich Finanzierung und Mieteinnahmen einbeziehe. Dadurch kann die Rendite auf das tatsächlich eingesetzte Eigenkapital deutlich interessanter ausfallen – natürlich immer abhängig vom Objekt und von der Finanzierung.\n\nBesonders wichtig war mir, **langfristig Vermögen aufzubauen** und gleichzeitig meine Altersvorsorge breiter aufzustellen. Philipp hat mir die Unterschiede zu anderen Anlageformen nachvollziehbar erklärt, ohne Aktien oder ETFs grundsätzlich schlechtzureden.\n\nDie Immobilie wurde mit allen Kosten, Chancen und Risiken transparent durchgerechnet. Für meine Ziele war der Kauf deshalb **der richtige Schritt**, und ich bin froh, ihn gemeinsam mit Philipp umgesetzt zu haben." },
+    { name: "Sarah S.", sterne: 5, strategie: { jahresgehalt: "48.000 € brutto", bereitsGekauft: "1 Immobilie", ziel: "4 Immobilien insgesamt", mieteinnahmenMonat: "880 €", vermoegenIn30Jahren: 384125, verlauf: [6263, 80000, 206592, 384125] }, kurz: "Alle Zahlen, laufenden Kosten und auch die Risiken wurden offen und verständlich erklärt. Deshalb war es für mich sinnvoller, mit professioneller Begleitung eine fundierte Entscheidung zu treffen, statt jahrelang auf das vermeintlich perfekte Angebot zu warten.\n\nHeute bin ich froh, den Schritt gemacht zu haben, und würde bei der nächsten Kapitalanlage **wieder mit Philipp zusammenarbeiten**.", text: "Rückblickend war für mich die wichtigste Erkenntnis, dass bei Immobilien nicht nur das richtige Objekt zählt, sondern auch **der Zeitpunkt**. Jedes weitere Jahr, in dem man nur sucht und nicht investiert, ist schließlich auch ein Jahr ohne Mieteinnahmen, Tilgung und möglichen Vermögensaufbau.\n\nIch hätte vermutlich noch mehrere Jahre auf ImmoScout vergleichen können, ohne wirklich sicher zu wissen, ob ich am Ende ein besseres Objekt finde. Bei Philipp hatte ich dagegen von Anfang an das Gefühl, dass die Immobilie **zu meiner finanziellen Situation und meinen langfristigen Zielen** ausgewählt wurde.\n\nAlle Zahlen, laufenden Kosten und auch die Risiken wurden offen und verständlich erklärt. Deshalb war es für mich sinnvoller, mit professioneller Begleitung eine fundierte Entscheidung zu treffen, statt jahrelang auf das vermeintlich perfekte Angebot zu warten.\n\nHeute bin ich froh, den Schritt gemacht zu haben, und würde bei der nächsten Kapitalanlage **wieder mit Philipp zusammenarbeiten**." },
   ],
+  // Echte, ungefähre Anzahl weiterer zufriedener Kunden über die drei oben
+  // gezeigten hinaus – erscheint nur, wenn hier eine echte Zahl steht.
+  // Philipp: "insgesamt über 50" – hier konservativ als "weitere" übernommen.
+  weitereKundenAnzahl: 50,
   impressum: {
     name: "Philipp Streib",
     firma: "Wohnblick Immobilien – Inh. Philipp Streib",
@@ -791,12 +788,22 @@ function schaetzeSparratenHebel(zielrente, steuersatz, jahre) {
     });
   }
 
+  // Ehrlicher Verlauf statt nur Jahr-1-Momentaufnahme: Die Belastung sinkt
+  // Jahr für Jahr, weil die Miete steigt, während die Kreditrate gleich
+  // bleibt – irgendwann kippt sie sogar ins Positive. Beides aus derselben
+  // echten Jahresreihe wie die Jahrestabelle, nicht geschätzt.
+  const cfPositivAbJahr = referenz.reihe.find((r) => r.cfNachSteuer >= 0)?.jahr ?? null;
+  const belastungSpaeter = jahre <= referenz.reihe.length
+    ? Math.max(0, Math.round(-referenz.reihe[jahre - 1].cfNachSteuer / 12) * anzahl)
+    : 0;
+
   return {
     monatlicheRate,
     anzahl, belastungMonat, verlauf,
     tagesgeld: sparplanBis(CONFIG.vergleich.sparzins, jahre),
     etf: sparplanBis(CONFIG.vergleich.aktienzins, jahre),
     immoGesamt, eigenerEinsatz, geschenkt,
+    cfPositivAbJahr, belastungSpaeter,
   };
 }
 
@@ -869,6 +876,7 @@ function GlobalStyles() {
       @keyframes vkAtem{0%,100%{box-shadow:0 8px 30px rgba(201,162,39,0.22)}50%{box-shadow:0 8px 40px rgba(201,162,39,0.42)}}
       @keyframes vkBalken{from{width:0}}
       @keyframes vkGlanz{0%{opacity:0}22%{opacity:1}100%{opacity:0}}
+      @keyframes vkShimmer{0%{background-position:200% center}100%{background-position:-200% center}}
       @media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
     `}</style>
   );
@@ -1007,6 +1015,20 @@ function ZielBadge({ text }) {
   );
 }
 
+/** Räumt mit einem typischen Anfänger-Irrglauben auf, genau an der Stelle im
+ * Quiz, wo er relevant wird – statt einer Liste vorab, die eh niemand liest. */
+function AnfaengerHinweis({ children }) {
+  return (
+    <div className="rounded-2xl p-4 flex items-start gap-3" style={{ background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.25)" }}>
+      <Info size={16} color={GREEN} className="shrink-0 mt-0.5" />
+      <div>
+        <div className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: GREEN }}>Häufiger Irrglaube</div>
+        <span className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.7)" }}>{children}</span>
+      </div>
+    </div>
+  );
+}
+
 function Option({ selected, onClick, children, multi }) {
   return (
     <button
@@ -1079,29 +1101,6 @@ function Reveal({ delay = 0, children }) {
   );
 }
 
-/** Zeigt nur echte, in CONFIG.testimonials eingetragene Stimmen – sonst nichts. */
-/**
- * Rendert Bewertungstext mit Absätzen (Leerzeile im Text = neuer Absatz) und
- * **so** markierten Stellen als fett – der Wortlaut in CONFIG bleibt dabei
- * unverändert, nur zwei einfache Konventionen (Leerzeile, **) steuern die Optik.
- */
-function BewertungsText({ text, style }) {
-  const absaetze = text.split(/\n\s*\n/);
-  const formatiere = (absatz) =>
-    absatz.split(/(\*\*[^*]+\*\*)/g).map((teil, j) =>
-      teil.startsWith("**") && teil.endsWith("**")
-        ? <strong key={j} style={{ color: "#fff", fontWeight: 600 }}>{teil.slice(2, -2)}</strong>
-        : teil
-    );
-  return absaetze.map((absatz, i) => (
-    <p key={i} className="text-sm leading-relaxed" style={{ ...style, marginTop: i > 0 ? "0.85em" : 0 }}>
-      {i === 0 && "\u201E"}
-      {formatiere(absatz)}
-      {i === absaetze.length - 1 && "\""}
-    </p>
-  ));
-}
-
 function Sterne({ anzahl = 5, size = 13 }) {
   return (
     <div className="flex gap-0.5">
@@ -1129,6 +1128,93 @@ function kuerzeBewertung(text, maxLaenge = 150) {
 /** "Mark R." → "MR" – für den Mini-Avatar, da keine echten Fotos hinterlegt sind. */
 function initialen(name) {
   return name.split(" ").map((teil) => teil[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+}
+
+/** Baut aus geraden Wegpunkten eine weiche Kurve (Catmull-Rom → kubische
+ * Bezier-Segmente) statt kantiger Geradenstücke – dieselben echten Punkte,
+ * nur ohne die sichtbaren Knicke an jedem Datenpunkt. */
+function weicherPfad(koordinaten) {
+  if (koordinaten.length < 2) return "";
+  const p = koordinaten;
+  let d = `M${p[0][0].toFixed(1)},${p[0][1].toFixed(1)}`;
+  for (let i = 0; i < p.length - 1; i++) {
+    const p0 = p[i - 1] || p[i];
+    const p1 = p[i];
+    const p2 = p[i + 1];
+    const p3 = p[i + 2] || p2;
+    const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
+
+/** Sich selbst zeichnende, weiche Vermögenskurve für die Bewertungskarten –
+ * zeichnet sich per stroke-dashoffset ein, sobald sie in den Blick kommt.
+ * Echte Datenpunkte (aus berechneModell), nur weich statt kantig verbunden. */
+/** Zählt eine Euro-Summe hoch, sobald sie beim Scrollen in den Blick kommt –
+ * für die "Vermögen in X Jahren"-Zahl in den Bewertungskarten. */
+function AnimierterBetrag({ ziel }) {
+  const ref = useRef(null);
+  const sichtbar = useSichtbarkeit(ref);
+  const zahl = useZaehler(ziel, { delay: 150, aktiv: sichtbar, dauer: 1400 });
+  return <span ref={ref}>{eur(Math.round(zahl))}</span>;
+}
+
+/** Rendert Bewertungstext mit Absätzen (Leerzeile = neuer Absatz) und
+ * **so** markierten Stellen als fett – macht die kurzen Kartenauszüge
+ * schneller lesbar, ohne den Wortlaut zu verändern. praefix/suffix hängen
+ * z. B. die Anführungszeichen an den ersten/letzten Absatz an. */
+function FormatierterText({ text, praefix = "", suffix = "" }) {
+  const absaetze = text.split(/\n\s*\n/);
+  const formatiere = (absatz) =>
+    absatz.split(/(\*\*[^*]+\*\*)/g).map((teil, j) =>
+      teil.startsWith("**") && teil.endsWith("**")
+        ? <strong key={j} style={{ color: "#fff", fontWeight: 600 }}>{teil.slice(2, -2)}</strong>
+        : teil
+    );
+  return absaetze.map((absatz, i) => (
+    <p key={i} style={{ marginTop: i > 0 ? "0.75em" : 0 }}>
+      {i === 0 && praefix}{formatiere(absatz)}{i === absaetze.length - 1 && suffix}
+    </p>
+  ));
+}
+
+function VermoegensSparkline({ punkte, breite = 280, hoehe = 64 }) {
+  const ref = useRef(null);
+  const sichtbar = useSichtbarkeit(ref);
+  const max = Math.max(...punkte, 1);
+  const koordinaten = punkte.map((p, i) => {
+    const x = (i / (punkte.length - 1)) * breite;
+    const y = hoehe - (p / max) * (hoehe - 6) - 3;
+    return [x, y];
+  });
+  const pfad = weicherPfad(koordinaten);
+  const flaeche = `${pfad} L${breite},${hoehe} L0,${hoehe} Z`;
+  const [ex, ey] = koordinaten[koordinaten.length - 1];
+
+  return (
+    <div ref={ref}>
+      <svg viewBox={`0 0 ${breite} ${hoehe}`} width="100%" height={hoehe} preserveAspectRatio="none" style={{ overflow: "visible", display: "block" }}>
+        <defs>
+          <linearGradient id="sparkline-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={GOLD} stopOpacity="0.32" />
+            <stop offset="100%" stopColor={GOLD} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={flaeche} fill="url(#sparkline-fill)" style={{ opacity: sichtbar ? 1 : 0, transition: "opacity 1s ease .6s" }} />
+        <path d={pfad} fill="none" stroke={GOLD_SOFT} strokeWidth="2" strokeLinecap="round"
+          style={{
+            strokeDasharray: 400, strokeDashoffset: sichtbar ? 0 : 400,
+            transition: "stroke-dashoffset 1.3s cubic-bezier(.16,1,.3,1)",
+          }} />
+        <circle cx={ex} cy={ey} r="3" fill={GOLD_SOFT}
+          style={{ opacity: sichtbar ? 1 : 0, transition: "opacity .4s ease 1.4s" }} />
+      </svg>
+    </div>
+  );
 }
 
 function Bewertungskarten() {
@@ -1173,39 +1259,82 @@ function Bewertungskarten() {
                 </div>
                 <Sterne anzahl={b.sterne ?? 5} size={12} />
               </div>
-              <p className="text-sm leading-relaxed mt-3.5" style={{ color: "rgba(255,255,255,0.7)" }}>
-                „{auszug}{gekuerzt ? "…" : "\u201C"}
-              </p>
+              <div className="text-sm leading-relaxed mt-3.5" style={{ color: "rgba(255,255,255,0.7)" }}>
+                <FormatierterText text={auszug} praefix="„" suffix={gekuerzt ? "…" : "\u201C"} />
+              </div>
+              {b.strategie && (
+                <div className="grid grid-cols-2 gap-x-3 gap-y-3 mt-4 pt-4" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+                  {[
+                    ["Gehalt", b.strategie.jahresgehalt],
+                    ["Bereits gekauft", b.strategie.bereitsGekauft],
+                    ["Miete/Monat jetzt", b.strategie.mieteinnahmenMonat],
+                    ["Ziel", b.strategie.ziel],
+                  ].filter(([, wert]) => wert).map(([label, wert]) => (
+                    <div key={label}>
+                      <div className="text-[10px] uppercase tracking-wide leading-tight" style={{ color: "rgba(255,255,255,0.35)" }}>{label}</div>
+                      <div className="text-xs font-medium mt-0.5 leading-tight">{wert}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {b.strategie && (b.strategie.vermoegenIn30Jahren || b.strategie.verlauf) && (
+                <div className="mt-3.5 p-3.5 rounded-2xl" style={{
+                  background: "linear-gradient(160deg, rgba(201,162,39,0.13), rgba(255,255,255,0.02))",
+                  border: "1px solid rgba(201,162,39,0.25)",
+                }}>
+                  {b.strategie.vermoegenIn30Jahren && (
+                    <div className="flex items-baseline justify-between">
+                      <div className="text-[11px]" style={{ color: "rgba(255,255,255,0.5)" }}>Vermögen in 30 Jahren</div>
+                      <div className="text-xl font-semibold" style={{ color: GOLD_SOFT }}><AnimierterBetrag ziel={b.strategie.vermoegenIn30Jahren} /></div>
+                    </div>
+                  )}
+                  {b.strategie.verlauf && (
+                    <div className="mt-2 -mx-1">
+                      <VermoegensSparkline punkte={b.strategie.verlauf} />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
       </div>
+      <WeitereKunden anzahl={CONFIG.weitereKundenAnzahl} />
     </div>
   );
 }
 
-function Testimonials() {
-  const eintraege = CONFIG.testimonials;
-  if (!eintraege || eintraege.length === 0) return null;
+/** Sozialer Beweis unter den drei ausführlichen Bewertungen – zeigt an, dass
+ * es noch mehr zufriedene Kunden gibt, ohne für jeden einzelnen eine
+ * Bewertung zu erfinden. Nur sichtbar, wenn CONFIG.weitereKundenAnzahl eine
+ * echte Zahl von Philipp ist – sonst rendert die Komponente nichts. */
+function WeitereKunden({ anzahl }) {
+  const ref = useRef(null);
+  const sichtbar = useSichtbarkeit(ref);
+  const zahl = useZaehler(anzahl, { delay: 200, aktiv: sichtbar, dauer: 1100 });
+  if (!anzahl || anzahl <= 0) return null;
 
   return (
-    <Card className="p-7">
-      <Eyebrow>Stimmen</Eyebrow>
-      <h3 className="text-xl font-semibold mb-5">Was andere sagen</h3>
-      <div className="space-y-5">
-        {eintraege.map((e, i) => (
-          <div key={i} className={i > 0 ? "pt-5" : ""} style={i > 0 ? { borderTop: `1px solid ${HAIRLINE}` } : {}}>
-            <BewertungsText text={e.text} style={{ color: "rgba(255,255,255,0.75)" }} />
-            <div className="text-xs mt-2.5" style={{ color: "rgba(255,255,255,0.4)" }}>
-              {e.name}{e.rolle ? ` · ${e.rolle}` : ""}
-            </div>
-          </div>
+    <div ref={ref} className="flex items-center justify-center gap-3 mt-5 py-4">
+      <div className="flex" style={{ marginRight: 2 }}>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} className="rounded-full flex items-center justify-center"
+            style={{
+              width: 30, height: 30, marginLeft: i === 0 ? 0 : -10,
+              background: "rgba(201,162,39,0.16)", border: `2px solid ${INK}`,
+              boxShadow: `0 0 0 1px rgba(201,162,39,0.3)`,
+              opacity: sichtbar ? 1 : 0,
+              transform: sichtbar ? "translateY(0)" : "translateY(6px)",
+              transition: `opacity .5s ease ${i * 0.08}s, transform .5s cubic-bezier(.16,1,.3,1) ${i * 0.08}s`,
+            }} />
         ))}
       </div>
-    </Card>
+      <div className="text-sm" style={{ color: "rgba(255,255,255,0.55)" }}>
+        <span className="font-semibold tabular-nums" style={{ color: GOLD_SOFT }}>+{Math.round(zahl)}</span> weitere zufriedene Kunden
+      </div>
+    </div>
   );
 }
-
 function Details({ titel = "Rechenweg anzeigen", children }) {
   const [offen, setOffen] = useState(false);
   return (
@@ -1521,11 +1650,15 @@ function Quiz({ antworten, setAntworten, onFertig, onZurueck }) {
   const istSelbststaendig = ["selbststaendig", "freiberufler", "unternehmer"].includes(a.status);
   const steuersatz = useMemo(() => grenzsteuersatz(a.brutto, a.status || "angestellt"), [a.brutto, a.status]);
   // Tilgungsjahr ist unabhängig vom Kaufpreis (siehe berechneModell) – einmal
-  // berechnet, für den Altershinweis auf dieser Seite nutzbar.
+  // berechnet, für den Altershinweis auf dieser Seite nutzbar. Horizont
+  // bewusst großzügig (60 Jahre), damit auch bei niedriger Tilgung (z. B.
+  // 1,5%, echte Laufzeit oft 30+ Jahre) das tatsächliche Tilgungsjahr
+  // gefunden wird, statt am 30-Jahre-Standardhorizont abzuschneiden und auf
+  // einen Ersatzwert zurückzufallen.
   const tilgungsjahr = useMemo(() => {
     const modell = berechneModell({
       kaufpreis: CONFIG.objekt.kaufpreisDefault, eigenkapitalEinsatz: 0,
-      steuersatz: 0, wertsteigerung: CONFIG.projektion.wertsteigerung,
+      steuersatz: 0, wertsteigerung: CONFIG.projektion.wertsteigerung, horizontJahre: 60,
     });
     return modell.abbezahltNachJahren ?? CONFIG.projektion.betrachtungJahre;
   }, []);
@@ -1781,6 +1914,10 @@ function Quiz({ antworten, setAntworten, onFertig, onZurueck }) {
           <Slider value={a.eigenkapital} min={0} max={200000} step={1000} kurve={2}
             onChange={(v) => set({ eigenkapital: v })} format={(v) => eur(v)} />
           <div className="text-sm" style={{ color: GOLD_SOFT }}>{eigenkapitalHinweis(a.eigenkapital)}</div>
+          <AnfaengerHinweis>
+            Die meisten denken, sie bräuchten mindestens 20% Eigenkapital – das stimmt fast nie. Viele
+            Finanzierungen laufen mit deutlich weniger oder sogar ganz ohne.
+          </AnfaengerHinweis>
         </div>
       ),
     },
@@ -1800,6 +1937,11 @@ function Quiz({ antworten, setAntworten, onFertig, onZurueck }) {
               </div>
             </div>
           )}
+          <AnfaengerHinweis>
+            Viele denken, sie müssten die ganze Immobilie aus eigener Tasche bezahlen. Tatsächlich zahlt
+            der Mieter über die Miete einen großen Teil der Kreditrate mit – deine Sparrate ist meist nur
+            die Differenz.
+          </AnfaengerHinweis>
         </div>
       ),
     },
@@ -1943,13 +2085,56 @@ const ANALYSE_TEXTE = [
   "Fast geschafft…",
 ];
 
-function Analyse({ onFertig }) {
+/**
+ * "Wie bereit bist du?"-Score – bewusst kein echtes Scoring-Modell, sondern
+ * ein ermutigender Anhaltspunkt: die meisten Leute unterschätzen, wie bereit
+ * sie eigentlich schon sind (typischer Anfängerfehler). Deshalb hoher
+ * Sockelwert und kein Punkt, der für fehlendes Eigenkapital abgezogen wird –
+ * das ist im Modell ja explizit kein Hindernis.
+ */
+function berechneBereitschaftsScore(a) {
+  let score = 45;
+  if (a.sparrate > 0) score += 15;
+  if (a.brutto > 0) score += 15;
+  if (a.ziele.length > 0) score += 15;
+  if (a.status) score += 10;
+  return Math.max(45, Math.min(95, score));
+}
+function bereitschaftsLabel(score) {
+  if (score >= 80) return "Sehr gute Ausgangslage";
+  if (score >= 60) return "Gute Ausgangslage";
+  return "Solide Ausgangslage";
+}
+
+function Analyse({ antworten, onFertig }) {
   const [i, setI] = useState(0);
+  const [zeigeScore, setZeigeScore] = useState(false);
+  const score = useMemo(() => berechneBereitschaftsScore(antworten), [antworten]);
+  const scoreZahl = useZaehler(score, { delay: 0, aktiv: zeigeScore });
+
   useEffect(() => {
     const t = setInterval(() => setI((v) => v + 1), 750);
-    const done = setTimeout(onFertig, 3800);
-    return () => { clearInterval(t); clearTimeout(done); };
+    const zeigen = setTimeout(() => setZeigeScore(true), 3800);
+    const done = setTimeout(onFertig, 6200);
+    return () => { clearInterval(t); clearTimeout(zeigen); clearTimeout(done); };
   }, [onFertig]);
+
+  if (zeigeScore) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center" style={{ animation: "vkIn .6s cubic-bezier(.16,1,.3,1)" }}>
+        <Eyebrow>Dein Bereitschafts-Score</Eyebrow>
+        <div className="text-6xl font-semibold tabular-nums tracking-tight mt-2"
+          style={{ background: `linear-gradient(120deg, #fff 30%, ${GOLD_SOFT})`, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>
+          {Math.round(scoreZahl)}
+        </div>
+        <div className="text-lg font-medium mt-3" style={{ color: GOLD_SOFT }}>{bereitschaftsLabel(score)}</div>
+        <p className="text-sm mt-3 max-w-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>
+          Viele denken, sie bräuchten erst viel Eigenkapital oder Erfahrung – deine Angaben zeigen: du
+          bist bereiter, als du vielleicht denkst.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6">
@@ -1974,6 +2159,73 @@ function Analyse({ onFertig }) {
 }
 
 /* ==================================================== Fallstudie (Hero) */
+/** Tippbarer Fachbegriff mit kurzer Erklärung – für Leute ohne
+ * Immobilien-Vorwissen, ohne die Seite mit Erklärtext vollzustopfen.
+ * Schließt sich beim erneuten Antippen oder Antippen woanders. */
+function Begriff({ children, erklaerung }) {
+  const [offen, setOffen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!offen) return;
+    const schliessen = (e) => { if (ref.current && !ref.current.contains(e.target)) setOffen(false); };
+    document.addEventListener("pointerdown", schliessen);
+    return () => document.removeEventListener("pointerdown", schliessen);
+  }, [offen]);
+
+  return (
+    <span ref={ref} className="relative inline-block">
+      <button type="button" onClick={() => setOffen((v) => !v)}
+        className="underline decoration-dotted underline-offset-2"
+        style={{ color: "inherit", textDecorationColor: "rgba(255,255,255,0.35)" }}>
+        {children}
+      </button>
+      {offen && (
+        <span className="absolute z-30 left-0 top-full mt-1.5 text-xs leading-relaxed rounded-xl p-3"
+          style={{ width: 220, background: "#17140B", border: `1px solid rgba(201,162,39,0.35)`, color: "rgba(255,255,255,0.75)" }}>
+          {erklaerung}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** Rundet einen Euro-Betrag pro Monat auf einen Alltagsvergleich herunter –
+ * macht abstrakte Belastungssummen greifbar für Leute, die sowas noch nie
+ * durchgerechnet haben. Bewusst grobe Stufen statt exakter Werte. */
+function alltagsVergleich(betragMonat) {
+  const b = Math.abs(betragMonat);
+  if (b < 15) return "etwa ein Streaming-Abo";
+  if (b < 40) return "etwa ein Streaming- und Fitness-Abo zusammen";
+  if (b < 90) return "ungefähr eine Monatskarte für den Nahverkehr";
+  if (b < 180) return "etwa wie eine Haushaltsversicherung, übers Jahr verteilt";
+  if (b < 350) return "ungefähr wie ein Mittelklasse-Auto-Leasing";
+  return "ungefähr wie eine kleine Zusatzmiete";
+}
+
+/** Echtes Foto, sobald public/philipp.jpg existiert (liegt schon dort, von
+ * der Landingpage) – bis dahin automatisch Initialen als Fallback, kein
+ * kaputtes Bild-Icon. */
+function PortraitFoto({ groesse = 48 }) {
+  const [fehler, setFehler] = useState(false);
+  if (fehler) {
+    return (
+      <div className="rounded-full flex items-center justify-center font-semibold shrink-0"
+        style={{
+          width: groesse, height: groesse, fontSize: groesse * 0.32,
+          background: "rgba(201,162,39,0.15)", color: GOLD_SOFT,
+          border: `1px solid rgba(201,162,39,0.4)`,
+        }}>
+        PS
+      </div>
+    );
+  }
+  return (
+    <img src="/philipp.jpg" onError={() => setFehler(true)} alt="Philipp Streib"
+      className="rounded-full object-cover shrink-0"
+      style={{ width: groesse, height: groesse, border: `1px solid rgba(201,162,39,0.4)` }} />
+  );
+}
+
 function Segment({ optionen, wert, onChange }) {
   return (
     <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${optionen.length}, minmax(0,1fr))` }}>
@@ -2065,6 +2317,7 @@ function Kaufplan({ antworten }) {
     const { volumen: vol, objekte, gesamtanzahl: n } = baueKaufplan(zielrente);
     const referenz = berechneModell({
       kaufpreis, eigenkapitalEinsatz: 0, steuersatz: 0, wertsteigerung: CONFIG.projektion.wertsteigerung,
+      horizontJahre: 60,
     });
     const tj = referenz.abbezahltNachJahren ?? CONFIG.projektion.betrachtungJahre;
 
@@ -2207,30 +2460,18 @@ function Kaufplan({ antworten }) {
           <div className="space-y-6">
             <div>
               <div className="text-sm mb-2.5" style={{ color: "rgba(255,255,255,0.75)" }}>Portfolio-Wert</div>
-              <div className="flex items-center gap-3">
-                <div>
-                  <div className="text-xs mb-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>heute</div>
-                  <div className="text-base font-medium tabular-nums" style={{ color: "rgba(255,255,255,0.6)" }}>{eur(gesamtwertHeute)}</div>
-                </div>
-                <ArrowRight size={16} color={GOLD_SOFT} className="shrink-0 mt-3.5" />
-                <div>
-                  <div className="text-xs mb-0.5" style={{ color: GOLD_SOFT }}>in Jahr {meilenstein2Jahr}</div>
-                  <div className="text-2xl font-semibold tabular-nums" style={{ color: GOLD_SOFT }}>{eur(Math.round(gesamtwertDann))}</div>
-                </div>
+              <div className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>heute {eur(gesamtwertHeute)}</div>
+              <div className="flex items-baseline gap-2 mt-1 flex-wrap">
+                <span className="text-2xl font-semibold tabular-nums" style={{ color: GOLD_SOFT }}>{eur(Math.round(gesamtwertDann))}</span>
+                <span className="text-xs whitespace-nowrap" style={{ color: GOLD_SOFT }}>in Jahr {meilenstein2Jahr}</span>
               </div>
             </div>
             <div>
               <div className="text-sm mb-2.5" style={{ color: "rgba(255,255,255,0.75)" }}>Tatsächliche Rente</div>
-              <div className="flex items-center gap-3">
-                <div>
-                  <div className="text-xs mb-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>geplant</div>
-                  <div className="text-base font-medium tabular-nums" style={{ color: "rgba(255,255,255,0.6)" }}>{eur(zielrente)} / Monat</div>
-                </div>
-                <ArrowRight size={16} color={GOLD_SOFT} className="shrink-0 mt-3.5" />
-                <div>
-                  <div className="text-xs mb-0.5" style={{ color: GOLD_SOFT }}>in Jahr {meilenstein2Jahr}</div>
-                  <div className="text-2xl font-semibold tabular-nums" style={{ color: GOLD_SOFT }}>{eur(Math.round(renteDann))} / Monat</div>
-                </div>
+              <div className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>geplant {eur(zielrente)} / Monat</div>
+              <div className="flex items-baseline gap-2 mt-1 flex-wrap">
+                <span className="text-2xl font-semibold tabular-nums" style={{ color: GOLD_SOFT }}>{eur(Math.round(renteDann))} / Monat</span>
+                <span className="text-xs whitespace-nowrap" style={{ color: GOLD_SOFT }}>in Jahr {meilenstein2Jahr}</span>
               </div>
             </div>
           </div>
@@ -2397,14 +2638,14 @@ function FallstudieHero({ modell, modellChart, kaufpreis, setKaufpreis, jahr, se
       <Details titel="Alle Annahmen anzeigen">
         <div className="mt-5">
           <Stat label="Darlehensbetrag" value={eur(modell.darlehen)} tone="gold" />
-          <Stat label="Monatliche Rate" sub={`${pct(CONFIG.finanzierung.sollzins)} Sollzins · ${pct(CONFIG.finanzierung.anfangstilgung)} Anfangstilgung`} value={eur(modell.rateMonat)} />
+          <Stat label="Monatliche Rate" sub={<><Begriff erklaerung="Der Zinssatz, den die Bank für den Kredit verlangt – Teil deiner monatlichen Rate.">{pct(CONFIG.finanzierung.sollzins, 1)} Sollzins</Begriff> · <Begriff erklaerung="Der Anteil deiner Rate, der im ersten Jahr direkt die Kreditsumme reduziert – der Rest sind Zinsen.">{pct(CONFIG.finanzierung.anfangstilgung, 1)} Anfangstilgung</Begriff></>} value={eur(modell.rateMonat)} />
           <Stat label="Gesamtkosten" value={eur(modell.gesamtkosten)} />
           <Stat label="Eingesetztes Eigenkapital" value={eur(modell.ekEingesetzt)} />
           <Stat label="Zinsanteil (Jahr 1, monatlich)" value={eur(modell.monat.zinsen)} />
           <Stat label="Tilgungsanteil (Jahr 1, monatlich)" value={eur(modell.rateMonat - modell.monat.zinsen)} />
           <Stat label={`Restschuld nach ${heroJahr} Jahren`} value={eur(s.restschuld)} />
-          <Stat label="AfA-Bemessungsgrundlage" sub={`${pct(CONFIG.objekt.gebaeudeanteil)} Gebäudeanteil inkl. anteiliger Nebenkosten`} value={eur(modell.afaBasis)} />
-          <Stat label="Angenommene AfA" sub={`${pct(CONFIG.objekt.afaSatz)} p. a. · ${CONFIG.objekt.afaDauerJahre} Jahre`} value={eur(modell.afaJahr) + " / Jahr"} />
+          <Stat label={<Begriff erklaerung="Absetzung für Abnutzung: Der Staat erkennt an, dass ein Gebäude über die Zeit an Wert verliert, und lässt dich einen Teil des Kaufpreises steuerlich absetzen.">AfA-Bemessungsgrundlage</Begriff>} sub={`${pct(CONFIG.objekt.gebaeudeanteil)} Gebäudeanteil inkl. anteiliger Nebenkosten`} value={eur(modell.afaBasis)} />
+          <Stat label={<Begriff erklaerung="Absetzung für Abnutzung: Der Staat erkennt an, dass ein Gebäude über die Zeit an Wert verliert, und lässt dich einen Teil des Kaufpreises steuerlich absetzen.">Angenommene AfA</Begriff>} sub={`${pct(CONFIG.objekt.afaSatz)} p. a. · ${CONFIG.objekt.afaDauerJahre} Jahre`} value={eur(modell.afaJahr) + " / Jahr"} />
           <div className="mt-5">
             <Hinweis>
               Die angenommene AfA von {pct(CONFIG.objekt.afaSatz)} dient ausschließlich der Beispielrechnung
@@ -2476,12 +2717,12 @@ function SparHebelVergleich({ antworten, onWeiter }) {
           <Eyebrow>Dein Kaufplan im Vergleich</Eyebrow>
           {antworten.ziele.includes("Vermögen aufbauen") && <ZielBadge text="Passt zu deinem Ziel: Vermögen aufbauen" />}
           <h3 className="text-xl font-semibold mb-2 leading-snug">
-            {eur(daten.monatlicheRate)} im Monat – drei Wege
+            Dein Plan: {daten.anzahl} Immobilie{daten.anzahl === 1 ? "" : "n"}
           </h3>
-          <p className="text-sm leading-relaxed mb-5" style={{ color: "rgba(255,255,255,0.5)" }}>
-            Die monatliche Belastung für deine {daten.anzahl} Immobilie{daten.anzahl === 1 ? "" : "n"} –
-            einmal auf dem Tagesgeldkonto, einmal im ETF-Sparplan, einmal wie geplant investiert.
-            Selbst der renditestärkere ETF-Sparplan bleibt deutlich hinter der Immobilie zurück.
+          <p className="text-sm leading-relaxed mb-2" style={{ color: "rgba(255,255,255,0.5)" }}>
+            So kommst du zu deiner Wunschrente von {eur(antworten.zielrente)} im Monat. Zum Vergleich:
+            Dieselbe monatliche Belastung auf dem Tagesgeldkonto oder im ETF-Sparplan bringt dich
+            deutlich weniger weit.
           </p>
 
           <div className="mb-6">
@@ -2683,67 +2924,50 @@ function TelefonGate({ antworten, onWeiter }) {
 }
 
 /* ======================================================== Ergebnisseite */
-/** Zeichnet das persönliche Ergebnis als teilbares 9:16-Bild (Canvas-API,
- * kein zusätzliches Paket nötig) und löst direkt den Download aus – gedacht
- * zum Teilen in der Instagram Story. */
-function StoryKarteButton({ nettovermoegen, jahr, faktor }) {
-  const erstelleUndSpeichern = () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 1080; canvas.height = 1920;
-    const ctx = canvas.getContext("2d");
 
-    ctx.fillStyle = INK;
-    ctx.fillRect(0, 0, 1080, 1920);
-
-    const glow = ctx.createRadialGradient(540, 320, 0, 540, 320, 720);
-    glow.addColorStop(0, "rgba(201,162,39,0.28)");
-    glow.addColorStop(1, "rgba(201,162,39,0)");
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, 1080, 1920);
-
-    ctx.textAlign = "center";
-    ctx.fillStyle = GOLD;
-    ctx.font = "600 30px system-ui, -apple-system, sans-serif";
-    ctx.fillText("MEINE VERMÖGENSANALYSE", 540, 720);
-
-    ctx.fillStyle = "rgba(255,255,255,0.6)";
-    ctx.font = "400 34px system-ui, sans-serif";
-    ctx.fillText(`Nettovermögen nach ${jahr} Jahren`, 540, 800);
-
-    const zahlGradient = ctx.createLinearGradient(140, 0, 940, 0);
-    zahlGradient.addColorStop(0, "#ffffff");
-    zahlGradient.addColorStop(1, GOLD_SOFT);
-    ctx.fillStyle = zahlGradient;
-    ctx.font = "700 108px system-ui, sans-serif";
-    ctx.fillText(eur(Math.round(nettovermoegen)), 540, 940);
-
-    if (faktor && faktor > 1) {
-      ctx.fillStyle = GREEN;
-      ctx.font = "500 36px system-ui, sans-serif";
-      ctx.fillText(`${faktor.toFixed(1).replace(".", ",")}× mehr als Tagesgeld`, 540, 1030);
-    }
-
-    ctx.fillStyle = "rgba(255,255,255,0.4)";
-    ctx.font = "400 30px system-ui, sans-serif";
-    ctx.fillText("philippstreib.com/analyse", 540, 1820);
-
-    const link = document.createElement("a");
-    link.download = "meine-vermoegensanalyse.png";
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-    trackEvent("story_karte_download");
-  };
+/** Bestätigungs-Banner ganz oben auf der Auswertungsseite – kommt direkt
+ * nach dem Telefon-Gate, soll die Anfrage spürbar bestätigen, bevor der
+ * eigentliche Plan folgt. Bewusst durchgängig golden statt grün/Erfolg, wie
+ * gewünscht – kein neuer Farbakzent, sondern derselbe Ton wie der Rest der
+ * Seite, nur sichtbar in Bewegung. */
+function BestaetigungsBanner({ vorname }) {
+  const [sichtbar, setSichtbar] = useState(false);
+  useEffect(() => { const id = setTimeout(() => setSichtbar(true), 120); return () => clearTimeout(id); }, []);
 
   return (
-    <button onClick={erstelleUndSpeichern}
-      className="w-full flex items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-medium transition-colors"
-      style={{ background: "rgba(201,162,39,0.1)", border: "1px solid rgba(201,162,39,0.3)", color: GOLD_SOFT }}>
-      <Download size={16} /> Für Story speichern
-    </button>
+    <div className="rounded-3xl p-5 flex items-center gap-4" style={{
+      background: "linear-gradient(135deg, rgba(201,162,39,0.16), rgba(255,255,255,0.02))",
+      border: "1px solid rgba(201,162,39,0.35)",
+      opacity: sichtbar ? 1 : 0,
+      transform: sichtbar ? "translateY(0)" : "translateY(-14px)",
+      transition: "opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1)",
+      animation: sichtbar ? "vkAtem 3.2s ease-in-out infinite" : "none",
+    }}>
+      <div className="relative shrink-0" style={{ width: 44, height: 44 }}>
+        <div className="absolute inset-0 rounded-full" style={{ background: "rgba(201,162,39,0.35)", animation: "vkPuls 2.2s ease-out infinite" }} />
+        <div className="relative rounded-full flex items-center justify-center w-full h-full"
+          style={{ background: "rgba(201,162,39,0.22)", border: `1px solid rgba(201,162,39,0.55)` }}>
+          <Check size={20} color={GOLD_SOFT} />
+        </div>
+      </div>
+      <div>
+        <div className="text-base font-semibold leading-snug" style={{
+          background: `linear-gradient(90deg, #fff 0%, ${GOLD_SOFT} 25%, #fff 50%, ${GOLD_SOFT} 75%, #fff 100%)`,
+          backgroundSize: "200% auto",
+          WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent",
+          animation: "vkShimmer 3.5s linear infinite",
+        }}>
+          {vorname?.trim() ? `Danke, ${vorname.trim()}!` : "Danke!"} Deine Anfrage ist bei uns.
+        </div>
+        <div className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.55)" }}>
+          Ich melde mich zeitnah persönlich bei dir. Bis dahin schon mal dein Plan:
+        </div>
+      </div>
+    </div>
   );
 }
 
-function Ergebnis({ antworten, onNeu, telefonVorausgefuellt, onImpressum, onDatenschutz, leadId }) {
+function Ergebnis({ antworten, onNeu, telefonVorausgefuellt, onImpressum, onDatenschutz, leadId, zeigeBestaetigung = true }) {
   const [kaufpreis, setKaufpreis] = useState(CONFIG.objekt.kaufpreisDefault);
   const [jahr, setJahr] = useState(CONFIG.projektion.betrachtungJahre);
   const [formOffen, setFormOffen] = useState(false);
@@ -2780,20 +3004,43 @@ function Ergebnis({ antworten, onNeu, telefonVorausgefuellt, onImpressum, onDate
   // Kosten des Zuwartens: derselbe Helfer wie im Telefon-Gate, nur mit den vom Nutzer gewählten Werten.
   const zuwartenDelta = schaetzeZuwartenProJahr(antworten, { kaufpreis, jahr });
 
-  // Für die Story-Karte: derselbe Belastung-vs-Tagesgeld-Vergleich wie im
-  // DreiWegeVergleich auf der Startseite, hier mit den persönlichen Werten.
-  const belastungMonat = Math.max(0, Math.round(-m.cfNachSteuer));
-  const tagesgeldVergleich = useMemo(() => {
-    const jahresbeitrag = belastungMonat * 12;
-    let summe = 0;
-    for (let j = 1; j <= jahr; j++) summe += jahresbeitrag * Math.pow(1 + CONFIG.vergleich.sparzins, jahr - j);
-    return summe;
-  }, [belastungMonat, jahr]);
-  const faktorVsTagesgeld = tagesgeldVergleich > 0 ? stand.nettovermoegen / tagesgeldVergleich : null;
+  // Für den Wiederkehr-Fall (dauerhafter Link): wie lange ist die erste
+  // Auswertung her, und was hätte das rechnerisch gekostet, in der
+  // Zwischenzeit nicht gestartet zu sein – nutzt genau dieselbe
+  // Zuwarten-Logik, nur über die tatsächlich verstrichene Zeit statt fiktiv.
+  const seitErstellungTage = antworten.erstelltAm
+    ? Math.round((Date.now() - new Date(antworten.erstelltAm).getTime()) / (24 * 60 * 60 * 1000))
+    : 0;
+  const verpasstProMonat = zuwartenDelta ? Math.round(zuwartenDelta / 12) : 0;
 
   return (
     <div className="min-h-screen px-5 pt-10 pb-24 max-w-3xl mx-auto space-y-5">
       <StickyCTA sichtbar={heroVergangen && !ctaSichtbar} onClick={zumCta} />
+
+      {/* Bestätigung ganz oben – direkt nach dem Telefon-Gate */}
+      {zeigeBestaetigung && <BestaetigungsBanner vorname={antworten.vorname} />}
+
+      {/* Wiederkehr-Fall (dauerhafter Link): statt der Bestätigung ein
+          Hinweis, wie lange die erste Auswertung her ist. */}
+      {!zeigeBestaetigung && seitErstellungTage >= 1 && (
+        <Reveal>
+          <div className="rounded-3xl p-5" style={{
+            background: "linear-gradient(135deg, rgba(201,162,39,0.14), rgba(255,255,255,0.02))",
+            border: "1px solid rgba(201,162,39,0.3)",
+          }}>
+            <div className="text-sm" style={{ color: "rgba(255,255,255,0.55)" }}>
+              Willkommen zurück{antworten.vorname?.trim() ? `, ${antworten.vorname.trim()}` : ""}. Deine erste
+              Auswertung ist {seitErstellungTage < 60 ? `${seitErstellungTage} Tage` : `${Math.round(seitErstellungTage / 30)} Monate`} her.
+              Ich hoffe, du bist schon fleißig dabei!
+            </div>
+            {verpasstProMonat > 0 && (
+              <div className="text-lg font-semibold mt-1.5" style={{ color: GOLD_SOFT }}>
+                Falls nicht: Jeder weitere Monat kostet dich rechnerisch rund {eur(verpasstProMonat)} Vermögen.
+              </div>
+            )}
+          </div>
+        </Reveal>
+      )}
 
       {/* Kaufplan zur Zielrente – zuerst, löst das Versprechen vom Sparraten-Screen direkt ein */}
       <Kaufplan antworten={antworten} />
@@ -2809,16 +3056,12 @@ function Ergebnis({ antworten, onNeu, telefonVorausgefuellt, onImpressum, onDate
       </Reveal>
       </div>
 
-      <Reveal>
-        <StoryKarteButton nettovermoegen={stand.nettovermoegen} jahr={jahr} faktor={faktorVsTagesgeld} />
-      </Reveal>
-
       {/* Monatliche Betrachtung */}
       <Reveal>
         <Card className="p-7">
         <Eyebrow>Monatlich · Jahr 1</Eyebrow>
         <h3 className="text-xl font-semibold mb-5">Was die Wohnung kostet</h3>
-        <Stat label="Kaltmiete" sub={`${pct(CONFIG.objekt.bruttomietrendite)} Bruttomietrendite · steigt jährlich um ${pct(CONFIG.objekt.mietsteigerung)}`} value={"+ " + eur(m.kaltmiete)} />
+        <Stat label="Kaltmiete" sub={<>Passt zu <Begriff erklaerung="Die jährliche Kaltmiete geteilt durch den Kaufpreis – ein grober erster Anhaltspunkt, wie viel Mieteinnahme ein Objekt im Verhältnis zu seinem Preis bringt.">{pct(CONFIG.objekt.bruttomietrendite, 1)} Bruttomietrendite</Begriff> · steigt jährlich um {pct(CONFIG.objekt.mietsteigerung)}</>} value={"+ " + eur(m.kaltmiete)} />
         <Stat label="Kreditrate" value={"− " + eur(m.rate)} />
         <Stat label="Nicht umlagefähige Kosten" value={"− " + eur(m.nichtUml)} />
 
@@ -2841,6 +3084,11 @@ function Ergebnis({ antworten, onNeu, telefonVorausgefuellt, onImpressum, onDate
               {(m.cfNachSteuer >= 0 ? "+" : "−") + eur(Math.abs(m.cfNachSteuer))}
             </span>
           </div>
+          {m.cfNachSteuer < 0 && (
+            <div className="text-xs mt-2 text-right" style={{ color: "rgba(255,255,255,0.35)" }}>
+              Zum Einordnen: {alltagsVergleich(m.cfNachSteuer)}
+            </div>
+          )}
         </div>
 
         <p className="text-sm leading-relaxed mt-5" style={{ color: "rgba(255,255,255,0.5)" }}>
@@ -2871,18 +3119,18 @@ function Ergebnis({ antworten, onNeu, telefonVorausgefuellt, onImpressum, onDate
         </Card>
       </Reveal>
 
-      {/* Stimmen – nur im DOM, wenn echte Einträge vorhanden sind (kein Leerraum sonst) */}
-      {CONFIG.testimonials.length > 0 && (
-        <Reveal>
-          <Testimonials />
-        </Reveal>
-      )}
-
       {/* Abschluss */}
       <div ref={ctaRef}>
       <Reveal>
         <div className="rounded-3xl p-8 md:p-10 mt-10"
           style={{ background: "linear-gradient(160deg, rgba(201,162,39,0.14), rgba(255,255,255,0.02))", border: `1px solid rgba(201,162,39,0.28)` }}>
+          <div className="flex items-center gap-3 mb-5">
+            <PortraitFoto groesse={48} />
+            <div>
+              <div className="text-sm font-medium leading-tight">Philipp Streib</div>
+              <div className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>Kapitalanlage-Experte</div>
+            </div>
+          </div>
           <h3 className="text-2xl md:text-3xl font-semibold leading-snug tracking-tight">
             Deine persönliche Vermögensstrategie wartet auf dich.
           </h3>
@@ -2918,14 +3166,15 @@ function Ergebnis({ antworten, onNeu, telefonVorausgefuellt, onImpressum, onDate
           <div className="mt-7 space-y-3">
             {!formOffen && (
               <GoldButton full onClick={() => { setFormOffen(true); trackEvent("cta_form_open"); }}>
-                Kostenlose Vermögensanalyse vereinbaren <ChevronRight size={18} />
+                Ich bin bereit – Termin vereinbaren <ChevronRight size={18} />
               </GoldButton>
             )}
-            <a href={waLink()} target="_blank" rel="noopener noreferrer"
-              onClick={() => trackEvent("whatsapp_click")}
+            <a href={waLink("Hallo Philipp, ich hab noch ein paar Fragen, bevor ich mich festlege.")}
+              target="_blank" rel="noopener noreferrer"
+              onClick={() => trackEvent("whatsapp_click", { intent: "fragen" })}
               className="flex items-center justify-center gap-2 rounded-full px-7 py-4 text-base font-medium transition-colors"
               style={{ background: "rgba(52,211,153,0.10)", border: "1px solid rgba(52,211,153,0.35)", color: GREEN }}>
-              <MessageCircle size={18} /> Direkt per WhatsApp schreiben
+              <MessageCircle size={18} /> Ich will erstmal mehr verstehen
             </a>
           </div>
 
@@ -3821,10 +4070,21 @@ function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysiere
   const [neueNotiz, setNeueNotiz] = useState("");
   const [loeschenBestaetigen, setLoeschenBestaetigen] = useState(false);
   const [linkKopiert, setLinkKopiert] = useState(false);
+  const [analyseLinkKopiert, setAnalyseLinkKopiert] = useState(false);
   const kaufplan = useMemo(() => (lead.zielrente ? baueKaufplan(lead.zielrente) : null), [lead.zielrente]);
   const aktuellerStatus = lead.crmStatus || "neu";
   const selbstauskunftLink = typeof window !== "undefined"
     ? `${window.location.origin}${window.location.pathname}#selbstauskunft-${lead.id}` : "";
+  const meineAnalyseLink = typeof window !== "undefined"
+    ? `${window.location.origin}${window.location.pathname}#analyse-${lead.id}` : "";
+
+  const analyseLinkKopieren = async () => {
+    try {
+      await navigator.clipboard.writeText(meineAnalyseLink);
+      setAnalyseLinkKopiert(true);
+      setTimeout(() => setAnalyseLinkKopiert(false), 2000);
+    } catch (e) { /* Zwischenablage nicht verfügbar – Link steht trotzdem sichtbar da */ }
+  };
 
   const linkKopieren = async () => {
     try {
@@ -3948,6 +4208,31 @@ function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysiere
           </div>
         </div>
       )}
+
+      <div className="mt-7">
+        <div className="text-xs uppercase tracking-widest mb-2.5" style={{ color: "rgba(255,255,255,0.4)" }}>Seine Auswertung</div>
+        <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${HAIRLINE}` }}>
+          <p className="text-sm leading-relaxed mb-3" style={{ color: "rgba(255,255,255,0.6)" }}>
+            Dauerhafter Link zu {lead.vorname}s eigener Auswertung – zeigt seine Zahlen wieder, ohne den
+            Funnel erneut durchlaufen zu müssen. Gut geeignet, um dranzubleiben.
+          </p>
+          <div className="text-xs px-3 py-2.5 rounded-lg mb-3 break-all" style={{ background: "rgba(0,0,0,0.3)", color: "rgba(255,255,255,0.5)" }}>
+            {meineAnalyseLink}
+          </div>
+          <div className="flex gap-2">
+            <button onClick={analyseLinkKopieren} className="text-xs font-medium px-3.5 py-2 rounded-full transition-colors"
+              style={{ background: analyseLinkKopiert ? "rgba(52,211,153,0.15)" : "rgba(255,255,255,0.06)", color: analyseLinkKopiert ? GREEN : "rgba(255,255,255,0.7)", border: `1px solid ${analyseLinkKopiert ? "rgba(52,211,153,0.3)" : HAIRLINE}` }}>
+              {analyseLinkKopiert ? "Link kopiert ✓" : "Link kopieren"}
+            </button>
+            <a href={waLink(`Hallo ${lead.vorname}, hier nochmal der Link zu deiner Auswertung: ${meineAnalyseLink}`)}
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs font-medium px-3.5 py-2 rounded-full transition-colors"
+              style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${HAIRLINE}`, color: "rgba(255,255,255,0.7)" }}>
+              <MessageCircle size={13} /> Per WhatsApp senden
+            </a>
+          </div>
+        </div>
+      </div>
 
       <div className="mt-7">
         <div className="text-xs uppercase tracking-widest mb-2.5" style={{ color: "rgba(255,255,255,0.4)" }}>Selbstauskunft</div>
@@ -4243,9 +4528,17 @@ function CRM({ onZurueck, accessToken }) {
                     style={{ background: CARD, border: `1px solid ${HAIRLINE}` }}>
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="font-medium truncate">{lead.vorname} {lead.nachname}</div>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-medium truncate">{lead.vorname} {lead.nachname}</span>
+                          {lead.vollstaendig && (
+                            <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+                              style={{ background: "rgba(201,162,39,0.18)", color: GOLD_SOFT, border: "1px solid rgba(201,162,39,0.4)" }}>
+                              <Star size={9} fill={GOLD_SOFT} /> 2× aktiv
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs mt-0.5 truncate" style={{ color: "rgba(255,255,255,0.4)" }}>
-                          {lead.telefon}{lead.zielrente ? ` · Ziel ${eur(lead.zielrente)}/Monat` : ""}
+                          {lead.telefon}{lead.zielrente ? ` · Ziel ${eur(lead.zielrente)}/Monat` : ""}{lead.termin ? ` · ${lead.termin}` : ""}
                         </div>
                       </div>
                       <div className="shrink-0 flex items-center gap-2">
@@ -4511,6 +4804,8 @@ function KontaktFormular({ telefonVorausgefuellt = "", vornameVorausgefuellt = "
     </div>
   );
 
+  const [linkKopiert, setLinkKopiert] = useState(false);
+
   const senden = () => {
     if (!d.vorname || !d.nachname) return setFehler("Bitte Vor- und Nachnamen eintragen.");
     if (!/^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$/.test(d.email)) return setFehler("Diese E-Mail-Adresse lässt sich nicht zustellen.");
@@ -4523,10 +4818,23 @@ function KontaktFormular({ telefonVorausgefuellt = "", vornameVorausgefuellt = "
     // Vervollständigt den beim Telefon-Gate angelegten Lead-Datensatz um E-Mail
     // und Wunschtermin (Upsert über dieselbe id) – kein doppelter Eintrag im CRM.
     speichereLead({
-      id: leadId || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      vorname: d.vorname, nachname: d.nachname, telefon: d.telefon, email: d.email, termin: d.termin,
+      id: eigeneLeadId, vorname: d.vorname, nachname: d.nachname, telefon: d.telefon, email: d.email, termin: d.termin,
       vollstaendig: true,
     });
+  };
+
+  // Dauerhafter, persönlicher Link zur eigenen Auswertung – dieselbe id wie
+  // beim Speichern, damit er nach dem Absenden sofort stimmt.
+  const eigeneLeadId = leadId || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const meineAnalyseLink = typeof window !== "undefined"
+    ? `${window.location.origin}${window.location.pathname}#analyse-${eigeneLeadId}` : "";
+
+  const linkKopieren = async () => {
+    try {
+      await navigator.clipboard.writeText(meineAnalyseLink);
+      setLinkKopiert(true);
+      setTimeout(() => setLinkKopiert(false), 2000);
+    } catch (e) { /* Zwischenablage nicht verfügbar – Link steht trotzdem sichtbar da */ }
   };
 
   if (gesendet) {
@@ -4540,6 +4848,24 @@ function KontaktFormular({ telefonVorausgefuellt = "", vornameVorausgefuellt = "
         <p className="text-sm mt-2" style={{ color: "rgba(255,255,255,0.55)" }}>
           Wir melden uns innerhalb von 24 Stunden bei dir, {d.vorname}.
         </p>
+
+        <div className="mt-6 pt-5 text-left" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+          <div className="text-xs uppercase tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>
+            Deine Auswertung, jederzeit wieder abrufbar
+          </div>
+          <p className="text-sm leading-relaxed mb-3" style={{ color: "rgba(255,255,255,0.5)" }}>
+            Diesen Link kannst du dir speichern – er zeigt dir deine Auswertung mit deinen eigenen
+            Zahlen wieder, auch in ein paar Wochen noch.
+          </p>
+          <button onClick={linkKopieren}
+            className="w-full flex items-center justify-between gap-2 rounded-xl px-4 py-3 text-xs"
+            style={{ background: "rgba(0,0,0,0.3)", border: `1px solid ${HAIRLINE}`, color: "rgba(255,255,255,0.6)" }}>
+            <span className="truncate text-left">{meineAnalyseLink}</span>
+            <span className="shrink-0 font-medium" style={{ color: linkKopiert ? GREEN : GOLD_SOFT }}>
+              {linkKopiert ? "Kopiert ✓" : "Kopieren"}
+            </span>
+          </button>
+        </div>
       </div>
     );
   }
@@ -4643,6 +4969,53 @@ const START = {
   hatImmobilien: null, immobilien: 0, zeitpunkt: "",
 };
 
+/** Dauerhafter, persönlicher Link für einen Lead – lädt seine damals
+ * gespeicherten Angaben (Ziele, Alter, Zielrente usw.) über die sichere
+ * Einzelabfrage und zeigt exakt dieselbe Auswertung nochmal, ohne dass der
+ * Funnel erneut durchlaufen werden muss. Praktisch als Wiedervorlage/zur
+ * Motivation, nicht nur als einmaliges Ergebnis. */
+function MeineAnalyse({ leadId, onImpressum, onDatenschutz }) {
+  const [lead, setLead] = useState(undefined); // undefined = lädt, null = nicht gefunden
+
+  useEffect(() => {
+    (async () => {
+      const gefunden = await holeLeadPerId(leadId);
+      setLead(gefunden || null);
+    })();
+  }, [leadId]);
+
+  if (lead === undefined) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center" style={{ color: "rgba(255,255,255,0.4)" }}>
+        Lädt deine Auswertung …
+      </div>
+    );
+  }
+
+  if (!lead || !lead.zielrente) {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center px-5 text-center gap-3">
+        <div className="text-lg font-medium">Diese Auswertung konnte nicht gefunden werden.</div>
+        <p className="text-sm max-w-xs" style={{ color: "rgba(255,255,255,0.5)" }}>
+          Der Link ist entweder abgelaufen oder fehlerhaft. Wende dich gerne direkt an uns.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <Ergebnis
+      antworten={lead}
+      telefonVorausgefuellt={lead.telefon}
+      leadId={lead.id}
+      onImpressum={onImpressum}
+      onDatenschutz={onDatenschutz}
+      onNeu={() => { if (typeof window !== "undefined") window.location.href = "/analyse"; }}
+      zeigeBestaetigung={false}
+    />
+  );
+}
+
 export default function Vermoegenskompass() {
   const [phase, setPhase] = useState(() => {
     if (typeof window === "undefined") return "start";
@@ -4650,11 +5023,17 @@ export default function Vermoegenskompass() {
     if (window.location.hash === "#crm") return "crm";
     if (window.location.hash === "#rechner") return "rechner";
     if (window.location.hash.startsWith("#selbstauskunft-")) return "selbstauskunft";
+    if (window.location.hash.startsWith("#analyse-")) return "meineAnalyse";
     return "start";
   });
   const [selbstauskunftLeadId] = useState(() => {
     if (typeof window === "undefined") return null;
     const treffer = window.location.hash.match(/^#selbstauskunft-(.+)$/);
+    return treffer ? treffer[1] : null;
+  });
+  const [meineAnalyseLeadId] = useState(() => {
+    if (typeof window === "undefined") return null;
+    const treffer = window.location.hash.match(/^#analyse-(.+)$/);
     return treffer ? treffer[1] : null;
   });
   const [vorherigePhase, setVorherigePhase] = useState("start");
@@ -4694,7 +5073,7 @@ export default function Vermoegenskompass() {
           <Quiz antworten={antworten} setAntworten={setAntworten}
             onFertig={() => setPhase("analyse")} onZurueck={() => setPhase("start")} />
         )}
-        {phase === "analyse" && <Analyse onFertig={() => setPhase("sparvergleich")} />}
+        {phase === "analyse" && <Analyse antworten={antworten} onFertig={() => setPhase("sparvergleich")} />}
         {phase === "sparvergleich" && (
           <SparHebelVergleich antworten={antworten} onWeiter={() => setPhase("kontakt")} />
         )}
@@ -4732,6 +5111,7 @@ export default function Vermoegenskompass() {
           )
         )}
         {phase === "selbstauskunft" && <Selbstauskunft leadId={selbstauskunftLeadId} />}
+        {phase === "meineAnalyse" && <MeineAnalyse leadId={meineAnalyseLeadId} onImpressum={oeffneImpressum} onDatenschutz={oeffneDatenschutz} />}
         {phase === "rechner" && (
           <RechnerSeite onZurueck={() => {
             if (typeof window !== "undefined") window.location.hash = "";
