@@ -203,17 +203,28 @@ async function ladeLeads(accessToken) {
 async function speichereLead(patch, accessToken) {
   try {
     // Bestehenden Datensatz per sicherer Einzel-ID-Abfrage holen, um die
-    // Teil-Aktualisierung reinzumergen – dasselbe Upsert-Verhalten wie
-    // zuvor (z. B. Telefon-Gate legt an, KontaktFormular ergänzt später
-    // E-Mail, ohne Ziele/Einkommen zu verlieren), nur ohne offenes SELECT.
+    // Teil-Aktualisierung reinzumergen (z. B. Telefon-Gate legt an,
+    // KontaktFormular ergänzt später E-Mail, ohne Ziele/Einkommen zu verlieren).
     const bisher = await holeLeadPerId(patch.id, accessToken);
     const neu = { ...(bisher || {}), ...patch };
 
-    const schreibRes = await fetch(`${CONFIG.supabase.url}/rest/v1/leads?on_conflict=id`, {
-      method: "POST",
-      headers: { ...supabaseHeaders(accessToken), Prefer: "resolution=merge-duplicates,return=representation" },
-      body: JSON.stringify([leadZuZeile(neu)]),
-    });
+    // Bewusst echtes Insert (neuer Lead) ODER echtes Update (bestehender Lead)
+    // statt eines Upserts: Ein Upsert (on_conflict) verlangt unter RLS
+    // zusätzlich eine Select-Berechtigung, um auf Konflikte zu prüfen – die
+    // anonyme Besucher aus gutem Grund nicht haben (sonst könnte jeder mit
+    // dem öffentlichen Anon-Key alle Leads auslesen). Insert und Update
+    // brauchen dagegen nur ihre jeweils eigene, schon vorhandene Policy.
+    const schreibRes = bisher
+      ? await fetch(`${CONFIG.supabase.url}/rest/v1/leads?id=eq.${encodeURIComponent(patch.id)}`, {
+          method: "PATCH",
+          headers: { ...supabaseHeaders(accessToken), Prefer: "return=representation" },
+          body: JSON.stringify(leadZuZeile(neu)),
+        })
+      : await fetch(`${CONFIG.supabase.url}/rest/v1/leads`, {
+          method: "POST",
+          headers: { ...supabaseHeaders(accessToken), Prefer: "return=representation" },
+          body: JSON.stringify([leadZuZeile(neu)]),
+        });
     if (!schreibRes.ok) { console.error("Lead speichern fehlgeschlagen", schreibRes.status, await schreibRes.text()); return null; }
     return neu;
   } catch (e) {
@@ -5020,6 +5031,7 @@ export default function Vermoegenskompass() {
   const [phase, setPhase] = useState(() => {
     if (typeof window === "undefined") return "start";
     if (window.location.pathname === "/rechner") return "rechner";
+    if (window.location.pathname === "/tool") return "crm";
     if (window.location.hash === "#crm") return "crm";
     if (window.location.hash === "#rechner") return "rechner";
     if (window.location.hash.startsWith("#selbstauskunft-")) return "selbstauskunft";

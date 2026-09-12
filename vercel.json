@@ -3,6 +3,8 @@
     { "source": "/analyse", "destination": "/index.html" },
     { "source": "/analyse/", "destination": "/index.html" },
     { "source": "/rechner", "destination": "/index.html" },
-    { "source": "/rechner/", "destination": "/index.html" }
+    { "source": "/rechner/", "destination": "/index.html" },
+    { "source": "/tool", "destination": "/index.html" },
+    { "source": "/tool/", "destination": "/index.html" }
   ]
 }
