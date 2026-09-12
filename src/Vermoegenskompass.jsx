@@ -214,15 +214,21 @@ async function speichereLead(patch, accessToken) {
     // anonyme Besucher aus gutem Grund nicht haben (sonst könnte jeder mit
     // dem öffentlichen Anon-Key alle Leads auslesen). Insert und Update
     // brauchen dagegen nur ihre jeweils eigene, schon vorhandene Policy.
+    // WICHTIG: "return=minimal" statt "return=representation" – Letzteres
+    // lässt Postgres die gerade geschriebene Zeile zurücklesen, was wiederum
+    // eine Select-Berechtigung braucht (dieselbe, die anon absichtlich nicht
+    // hat) und den ganzen Schreibvorgang an derselben RLS-Regel scheitern
+    // lässt, obwohl das Schreiben selbst erlaubt wäre. Die Antwort wird hier
+    // ohnehin nie ausgelesen (neu wird schon vorher clientseitig berechnet).
     const schreibRes = bisher
       ? await fetch(`${CONFIG.supabase.url}/rest/v1/leads?id=eq.${encodeURIComponent(patch.id)}`, {
           method: "PATCH",
-          headers: { ...supabaseHeaders(accessToken), Prefer: "return=representation" },
+          headers: { ...supabaseHeaders(accessToken), Prefer: "return=minimal" },
           body: JSON.stringify(leadZuZeile(neu)),
         })
       : await fetch(`${CONFIG.supabase.url}/rest/v1/leads`, {
           method: "POST",
-          headers: { ...supabaseHeaders(accessToken), Prefer: "return=representation" },
+          headers: { ...supabaseHeaders(accessToken), Prefer: "return=minimal" },
           body: JSON.stringify([leadZuZeile(neu)]),
         });
     if (!schreibRes.ok) { console.error("Lead speichern fehlgeschlagen", schreibRes.status, await schreibRes.text()); return null; }
