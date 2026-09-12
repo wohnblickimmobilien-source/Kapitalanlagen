@@ -2985,7 +2985,7 @@ function BestaetigungsBanner({ vorname }) {
   );
 }
 
-function Ergebnis({ antworten, onNeu, telefonVorausgefuellt, onImpressum, onDatenschutz, leadId, zeigeBestaetigung = true }) {
+function Ergebnis({ antworten, onNeu, telefonVorausgefuellt, onImpressum, onDatenschutz, leadId, zeigeBestaetigung = true, zurueckZumCRM }) {
   const [kaufpreis, setKaufpreis] = useState(CONFIG.objekt.kaufpreisDefault);
   const [jahr, setJahr] = useState(CONFIG.projektion.betrachtungJahre);
   const [formOffen, setFormOffen] = useState(false);
@@ -3034,6 +3034,12 @@ function Ergebnis({ antworten, onNeu, telefonVorausgefuellt, onImpressum, onDate
   return (
     <div className="min-h-screen px-5 pt-10 pb-24 max-w-3xl mx-auto space-y-5">
       <StickyCTA sichtbar={heroVergangen && !ctaSichtbar} onClick={zumCta} />
+
+      {zurueckZumCRM && (
+        <button onClick={zurueckZumCRM} className="flex items-center gap-1.5 text-sm -mt-2" style={{ color: "rgba(255,255,255,0.5)" }}>
+          <ArrowLeft size={15} /> Zurück zum CRM
+        </button>
+      )}
 
       {/* Bestätigung ganz oben – direkt nach dem Telefon-Gate */}
       {zeigeBestaetigung && <BestaetigungsBanner vorname={antworten.vorname} />}
@@ -4124,7 +4130,7 @@ function druckeSelbstauskunft(lead) {
   setTimeout(() => fenster.print(), 300);
 }
 
-function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysieren, onRefresh }) {
+function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysieren, onRefresh, onAnalyseAnsehen }) {
   const [neueNotiz, setNeueNotiz] = useState("");
   const [neuerLinkUrl, setNeuerLinkUrl] = useState("");
   const [neuerLinkLabel, setNeuerLinkLabel] = useState("");
@@ -4134,9 +4140,9 @@ function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysiere
   const kaufplan = useMemo(() => (lead.zielrente ? baueKaufplan(lead.zielrente) : null), [lead.zielrente]);
   const aktuellerStatus = lead.crmStatus || "neu";
   const selbstauskunftLink = typeof window !== "undefined"
-    ? `${window.location.origin}${window.location.pathname}#selbstauskunft-${lead.id}` : "";
+    ? `${window.location.origin}/analyse#selbstauskunft-${lead.id}` : "";
   const meineAnalyseLink = typeof window !== "undefined"
-    ? `${window.location.origin}${window.location.pathname}#analyse-${lead.id}` : "";
+    ? `${window.location.origin}/analyse#analyse-${lead.id}` : "";
 
   const analyseLinkKopieren = async () => {
     try {
@@ -4303,12 +4309,21 @@ function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysiere
       </div>
 
       {kaufplan && (
-        <div className="mt-7 rounded-2xl p-5" style={{ background: "rgba(201,162,39,0.08)", border: "1px solid rgba(201,162,39,0.25)" }}>
-          <div className="text-xs uppercase tracking-widest mb-2" style={{ color: GOLD_SOFT }}>Passender Kaufplan</div>
+        <button onClick={onAnalyseAnsehen} disabled={!onAnalyseAnsehen}
+          className="w-full text-left mt-7 rounded-2xl p-5 transition-colors"
+          style={{ background: "rgba(201,162,39,0.08)", border: "1px solid rgba(201,162,39,0.25)", cursor: onAnalyseAnsehen ? "pointer" : "default" }}>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="text-xs uppercase tracking-widest" style={{ color: GOLD_SOFT }}>Passender Kaufplan</div>
+            {onAnalyseAnsehen && (
+              <span className="flex items-center gap-1 text-xs shrink-0" style={{ color: GOLD_SOFT }}>
+                Auswertung ansehen <ChevronRight size={13} />
+              </span>
+            )}
+          </div>
           <div className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>
             {kaufplan.gesamtanzahl} Objekte à {eurK(kaufplan.kaufpreis)} € · Gesamtvolumen {eur(kaufplan.volumen)}
           </div>
-        </div>
+        </button>
       )}
 
       <div className="mt-7">
@@ -4527,10 +4542,9 @@ function CRMLogin({ onErfolg }) {
   );
 }
 
-function CRM({ onZurueck, accessToken }) {
+function CRM({ onZurueck, accessToken, onAnalyseAnsehen }) {
   const [tab, setTab] = useState("leads"); // "leads" | "analyse"
   const [leads, setLeads] = useState(null);
-  const [filter, setFilter] = useState("alle");
   const [suche, setSuche] = useState("");
   const [aktivId, setAktivId] = useState(null);
   const [ladeFehler, setLadeFehler] = useState(false);
@@ -4563,12 +4577,9 @@ function CRM({ onZurueck, accessToken }) {
     await loescheLead(id, accessToken);
   };
 
-  const zaehler = (status) =>
-    (leads || []).filter((l) => (status === "alle" ? true : (l.crmStatus || "neu") === status)).length;
-
   const gefiltert = useMemo(() => {
     if (!leads) return [];
-    let liste = filter === "alle" ? leads : leads.filter((l) => (l.crmStatus || "neu") === filter);
+    let liste = leads;
     const q = suche.trim().toLowerCase();
     if (q) {
       liste = liste.filter((l) =>
@@ -4577,12 +4588,72 @@ function CRM({ onZurueck, accessToken }) {
       );
     }
     return liste;
-  }, [leads, filter, suche]);
+  }, [leads, suche]);
+
+  const spalten = useMemo(() => {
+    const gruppen = {};
+    for (const status of Object.keys(CRM_STATUS)) gruppen[status] = [];
+    for (const lead of gefiltert) {
+      const status = lead.crmStatus || "neu";
+      if (!gruppen[status]) gruppen[status] = [];
+      gruppen[status].push(lead);
+    }
+    return gruppen;
+  }, [gefiltert]);
+
+  // Ziehen einer Karte zwischen Spalten – per Pointer-Events (funktioniert mit
+  // Maus UND Touch, anders als natives HTML5-Drag&Drop). Ein kurzer Tap ohne
+  // nennenswerte Bewegung öffnet stattdessen ganz normal die Detailansicht.
+  const [dragLeadId, setDragLeadId] = useState(null);
+  const [dragPos, setDragPos] = useState(null);
+  const [dragOverStatus, setDragOverStatus] = useState(null);
+  const dragRef = useRef({ id: null, startX: 0, startY: 0, dragging: false });
+  const spaltenRefs = useRef({});
+
+  const onKartePointerDown = (e, leadId) => {
+    dragRef.current = { id: leadId, startX: e.clientX, startY: e.clientY, dragging: false };
+  };
+
+  useEffect(() => {
+    const onMove = (e) => {
+      const d = dragRef.current;
+      if (!d.id) return;
+      const dx = e.clientX - d.startX, dy = e.clientY - d.startY;
+      if (!d.dragging && Math.hypot(dx, dy) > 10) {
+        d.dragging = true;
+        setDragLeadId(d.id);
+      }
+      if (d.dragging) {
+        setDragPos({ x: e.clientX, y: e.clientY });
+        let ueber = null;
+        for (const [status, el] of Object.entries(spaltenRefs.current)) {
+          if (!el) continue;
+          const r = el.getBoundingClientRect();
+          if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) { ueber = status; break; }
+        }
+        setDragOverStatus(ueber);
+      }
+    };
+    const onUp = () => {
+      const d = dragRef.current;
+      if (d.dragging && d.id && dragOverStatus) {
+        const lead = (leads || []).find((l) => l.id === d.id);
+        if (lead && (lead.crmStatus || "neu") !== dragOverStatus) aktualisieren(d.id, { crmStatus: dragOverStatus });
+      } else if (!d.dragging && d.id) {
+        setAktivId(d.id);
+      }
+      dragRef.current = { id: null, startX: 0, startY: 0, dragging: false };
+      setDragLeadId(null); setDragPos(null); setDragOverStatus(null);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => { window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); };
+  }, [dragOverStatus, leads]);
 
   if (leads !== null && aktivId) {
     const lead = leads.find((l) => l.id === aktivId);
     if (lead) {
-      return <LeadDetail lead={lead} onZurueck={() => setAktivId(null)} onAktualisieren={(patch) => aktualisieren(aktivId, patch)} onLoeschen={() => loeschen(aktivId)} onAnalysieren={() => { setAnalyseVorlage(lead); setAktivId(null); setTab("analyse"); }} onRefresh={laden} />;
+      return <LeadDetail lead={lead} onZurueck={() => setAktivId(null)} onAktualisieren={(patch) => aktualisieren(aktivId, patch)} onLoeschen={() => loeschen(aktivId)} onAnalysieren={() => { setAnalyseVorlage(lead); setAktivId(null); setTab("analyse"); }} onRefresh={laden} onAnalyseAnsehen={onAnalyseAnsehen ? () => onAnalyseAnsehen(lead.id) : null} />;
     }
   }
 
@@ -4653,24 +4724,10 @@ function CRM({ onZurueck, accessToken }) {
             </button>
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-1 mb-5" style={{ scrollbarWidth: "none" }}>
-            {["alle", ...Object.keys(CRM_STATUS)].map((s) => (
-              <button key={s} onClick={() => setFilter(s)}
-                className="shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors"
-                style={{
-                  background: filter === s ? GOLD : "rgba(255,255,255,0.06)",
-                  color: filter === s ? "#15130B" : "rgba(255,255,255,0.6)",
-                  border: `1px solid ${filter === s ? GOLD : HAIRLINE}`,
-                }}>
-                {s === "alle" ? "Alle" : CRM_STATUS[s].label} ({zaehler(s)})
-              </button>
-            ))}
-          </div>
-
           {gefiltert.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-sm mb-4" style={{ color: "rgba(255,255,255,0.4)" }}>
-                {leads.length === 0 ? "Noch keine Leads eingegangen." : "Keine Leads in dieser Ansicht."}
+                {leads.length === 0 ? "Noch keine Leads eingegangen." : "Keine Treffer für diese Suche."}
               </p>
               {leads.length === 0 && (
                 <button onClick={hinzufuegenBeispiel} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors"
@@ -4680,74 +4737,80 @@ function CRM({ onZurueck, accessToken }) {
               )}
             </div>
           ) : (
-            <div className="space-y-2.5">
-              {gefiltert.map((lead) => {
-                const st = CRM_STATUS[lead.crmStatus || "neu"];
-                const wvTage = lead.wiedervorlageAm
-                  ? Math.ceil((new Date(lead.wiedervorlageAm).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000)
-                  : null;
-                const letzteNotiz = (lead.notizVerlauf || [])[0];
-                return (
-                  <button key={lead.id} onClick={() => setAktivId(lead.id)}
-                    className="w-full text-left rounded-2xl p-4 transition-colors"
-                    style={{ background: CARD, border: `1px solid ${HAIRLINE}` }}>
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="font-medium truncate">{lead.vorname} {lead.nachname}</span>
-                          {lead.vollstaendig && (
-                            <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full"
-                              style={{ background: "rgba(201,162,39,0.18)", color: GOLD_SOFT, border: "1px solid rgba(201,162,39,0.4)" }}>
-                              <Star size={9} fill={GOLD_SOFT} /> 2× aktiv
-                            </span>
-                          )}
-                          {lead.selbstauskunft && (
-                            <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full"
-                              style={{ background: "rgba(52,211,153,0.15)", color: GREEN, border: "1px solid rgba(52,211,153,0.35)" }}>
-                              <Check size={9} strokeWidth={3} /> Selbstauskunft
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs mt-0.5 truncate" style={{ color: "rgba(255,255,255,0.4)" }}>
-                          {lead.telefon}{lead.zielrente ? ` · Ziel ${eur(lead.zielrente)}/Monat` : ""}{lead.termin ? ` · ${lead.termin}` : ""}
-                        </div>
-                      </div>
-                      <div className="shrink-0 flex items-center gap-2">
-                        <span className="text-[11px] font-medium px-2 py-1 rounded-full whitespace-nowrap" style={{ background: `${st.color}22`, color: st.color }}>
-                          {st.label}
-                        </span>
-                        <ChevronRight size={16} color="rgba(255,255,255,0.3)" />
-                      </div>
-                    </div>
+            <div className="-mx-5 px-5 flex gap-3 overflow-x-auto pb-3" style={{ scrollbarWidth: "thin" }}>
+              {Object.entries(CRM_STATUS).map(([status, s]) => (
+                <div key={status} ref={(el) => (spaltenRefs.current[status] = el)}
+                  className="shrink-0 rounded-2xl p-2.5 transition-colors"
+                  style={{
+                    width: 250, background: dragOverStatus === status && dragLeadId ? "rgba(201,162,39,0.08)" : "rgba(255,255,255,0.02)",
+                    border: `1px solid ${dragOverStatus === status && dragLeadId ? "rgba(201,162,39,0.4)" : HAIRLINE}`,
+                  }}>
+                  <div className="flex items-center gap-1.5 px-1.5 py-1.5 mb-1">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.color }} />
+                    <span className="text-xs font-medium truncate">{s.label}</span>
+                    <span className="text-xs shrink-0" style={{ color: "rgba(255,255,255,0.35)" }}>{spalten[status].length}</span>
+                  </div>
 
-                    {(wvTage !== null || lead.letzterKontaktAm || letzteNotiz) && (
-                      <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2.5" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
-                        {wvTage !== null && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full"
-                            style={wvTage <= 0
-                              ? { background: "rgba(248,113,113,0.15)", color: "#F87171", border: "1px solid rgba(248,113,113,0.35)" }
-                              : { background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)", border: `1px solid ${HAIRLINE}` }}>
-                            <Clock size={9} />
-                            {wvTage === 0 ? "Wiedervorlage heute" : wvTage < 0 ? `Wiedervorlage überfällig (${Math.abs(wvTage)}T.)` : `Wiedervorlage in ${wvTage}T.`}
-                          </span>
-                        )}
-                        {lead.letzterKontaktAm && (
-                          <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>
-                            Zuletzt kontaktiert {new Date(lead.letzterKontaktAm).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })}
-                          </span>
-                        )}
-                        {letzteNotiz && (
-                          <span className="text-[10px] truncate" style={{ color: "rgba(255,255,255,0.35)" }}>
-                            · "{letzteNotiz.text.slice(0, 40)}{letzteNotiz.text.length > 40 ? "…" : ""}"
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
+                  <div className="space-y-2" style={{ minHeight: 40 }}>
+                    {spalten[status].map((lead) => {
+                      const wvTage = lead.wiedervorlageAm
+                        ? Math.ceil((new Date(lead.wiedervorlageAm).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000)
+                        : null;
+                      const letzteNotiz = (lead.notizVerlauf || [])[0];
+                      const wirdGezogen = dragLeadId === lead.id;
+                      return (
+                        <div key={lead.id}
+                          onPointerDown={(e) => onKartePointerDown(e, lead.id)}
+                          className="rounded-xl p-3 select-none"
+                          style={{
+                            background: CARD, border: `1px solid ${HAIRLINE}`, touchAction: "none", cursor: "grab",
+                            opacity: wirdGezogen ? 0.3 : 1,
+                          }}>
+                          <div className="flex items-center gap-1 min-w-0 flex-wrap">
+                            <span className="font-medium text-sm truncate">{lead.vorname} {lead.nachname}</span>
+                            {lead.vollstaendig && <Star size={11} fill={GOLD_SOFT} color={GOLD_SOFT} />}
+                            {lead.selbstauskunft && <Check size={12} strokeWidth={3} color={GREEN} />}
+                          </div>
+                          <div className="text-xs mt-0.5 truncate" style={{ color: "rgba(255,255,255,0.4)" }}>
+                            {lead.telefon}{lead.zielrente ? ` · ${eur(lead.zielrente)}/Mon.` : ""}
+                          </div>
+                          {(wvTage !== null || lead.letzterKontaktAm || letzteNotiz) && (
+                            <div className="mt-1.5 pt-1.5" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+                              {wvTage !== null && (
+                                <div className="text-[10px] font-medium" style={{ color: wvTage <= 0 ? "#F87171" : "rgba(255,255,255,0.4)" }}>
+                                  {wvTage === 0 ? "Wiedervorlage heute" : wvTage < 0 ? `Überfällig (${Math.abs(wvTage)}T.)` : `In ${wvTage} Tagen`}
+                                </div>
+                              )}
+                              {letzteNotiz && (
+                                <div className="text-[10px] truncate mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>
+                                  "{letzteNotiz.text.slice(0, 34)}{letzteNotiz.text.length > 34 ? "…" : ""}"
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
+
+          {dragLeadId && dragPos && (() => {
+            const lead = (leads || []).find((l) => l.id === dragLeadId);
+            if (!lead) return null;
+            return (
+              <div className="fixed z-50 rounded-xl p-3 pointer-events-none"
+                style={{
+                  left: dragPos.x - 110, top: dragPos.y - 30, width: 220,
+                  background: "#1c1a12", border: `1px solid ${GOLD}`, boxShadow: "0 12px 32px rgba(0,0,0,0.5)",
+                }}>
+                <div className="font-medium text-sm truncate">{lead.vorname} {lead.nachname}</div>
+                <div className="text-xs mt-0.5" style={{ color: GOLD_SOFT }}>{dragOverStatus ? CRM_STATUS[dragOverStatus].label : "…"}</div>
+              </div>
+            );
+          })()}
         </>
       )}
       </>
@@ -5072,7 +5135,7 @@ function KontaktFormular({ telefonVorausgefuellt = "", vornameVorausgefuellt = "
   // beim Speichern, damit er nach dem Absenden sofort stimmt.
   const eigeneLeadId = leadId || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const meineAnalyseLink = typeof window !== "undefined"
-    ? `${window.location.origin}${window.location.pathname}#analyse-${eigeneLeadId}` : "";
+    ? `${window.location.origin}/analyse#analyse-${eigeneLeadId}` : "";
 
   const linkKopieren = async () => {
     try {
@@ -5219,7 +5282,7 @@ const START = {
  * Einzelabfrage und zeigt exakt dieselbe Auswertung nochmal, ohne dass der
  * Funnel erneut durchlaufen werden muss. Praktisch als Wiedervorlage/zur
  * Motivation, nicht nur als einmaliges Ergebnis. */
-function MeineAnalyse({ leadId, onImpressum, onDatenschutz }) {
+function MeineAnalyse({ leadId, onImpressum, onDatenschutz, zurueckZumCRM }) {
   const [lead, setLead] = useState(undefined); // undefined = lädt, null = nicht gefunden
 
   useEffect(() => {
@@ -5257,6 +5320,7 @@ function MeineAnalyse({ leadId, onImpressum, onDatenschutz }) {
       onDatenschutz={onDatenschutz}
       onNeu={() => { if (typeof window !== "undefined") window.location.href = "/analyse"; }}
       zeigeBestaetigung={false}
+      zurueckZumCRM={zurueckZumCRM}
     />
   );
 }
@@ -5264,12 +5328,16 @@ function MeineAnalyse({ leadId, onImpressum, onDatenschutz }) {
 export default function Vermoegenskompass() {
   const [phase, setPhase] = useState(() => {
     if (typeof window === "undefined") return "start";
-    if (window.location.pathname === "/rechner") return "rechner";
-    if (window.location.pathname === "/tool") return "crm";
-    if (window.location.hash === "#crm") return "crm";
-    if (window.location.hash === "#rechner") return "rechner";
+    // Hash-Routen zuerst: Ein Link wie /tool#selbstauskunft-XY (kann entstehen,
+    // wenn der Link im CRM unter /tool kopiert wurde) soll trotzdem das
+    // Formular zeigen, nicht das CRM-Login – die konkrete Absicht im Hash
+    // sticht die generische Pfad-Prüfung.
     if (window.location.hash.startsWith("#selbstauskunft-")) return "selbstauskunft";
     if (window.location.hash.startsWith("#analyse-")) return "meineAnalyse";
+    if (window.location.hash === "#crm") return "crm";
+    if (window.location.hash === "#rechner") return "rechner";
+    if (window.location.pathname === "/rechner") return "rechner";
+    if (window.location.pathname === "/tool") return "crm";
     return "start";
   });
   const [selbstauskunftLeadId] = useState(() => {
@@ -5277,11 +5345,12 @@ export default function Vermoegenskompass() {
     const treffer = window.location.hash.match(/^#selbstauskunft-(.+)$/);
     return treffer ? treffer[1] : null;
   });
-  const [meineAnalyseLeadId] = useState(() => {
+  const [meineAnalyseLeadId, setMeineAnalyseLeadId] = useState(() => {
     if (typeof window === "undefined") return null;
     const treffer = window.location.hash.match(/^#analyse-(.+)$/);
     return treffer ? treffer[1] : null;
   });
+  const [meineAnalyseAusCRM, setMeineAnalyseAusCRM] = useState(false);
   const [vorherigePhase, setVorherigePhase] = useState("start");
   const [antworten, setAntworten] = useState(START);
   const [telefon, setTelefon] = useState("");
@@ -5351,13 +5420,20 @@ export default function Vermoegenskompass() {
               if (typeof window !== "undefined") window.location.hash = "";
               setCrmSession(null);
               setPhase("start");
+            }} onAnalyseAnsehen={(id) => {
+              setMeineAnalyseLeadId(id);
+              setMeineAnalyseAusCRM(true);
+              setPhase("meineAnalyse");
             }} />
           ) : (
             <CRMLogin onErfolg={setCrmSession} />
           )
         )}
         {phase === "selbstauskunft" && <Selbstauskunft leadId={selbstauskunftLeadId} />}
-        {phase === "meineAnalyse" && <MeineAnalyse leadId={meineAnalyseLeadId} onImpressum={oeffneImpressum} onDatenschutz={oeffneDatenschutz} />}
+        {phase === "meineAnalyse" && (
+          <MeineAnalyse leadId={meineAnalyseLeadId} onImpressum={oeffneImpressum} onDatenschutz={oeffneDatenschutz}
+            zurueckZumCRM={meineAnalyseAusCRM ? () => { setMeineAnalyseAusCRM(false); setPhase("crm"); } : null} />
+        )}
         {phase === "rechner" && (
           <RechnerSeite onZurueck={() => {
             if (typeof window !== "undefined") window.location.hash = "";
