@@ -4896,7 +4896,10 @@ function Selbstauskunft({ leadId }) {
     }
     if (!einwilligung) return setFehler("Bitte bestätige die Einwilligung zur Datenverarbeitung.");
     setFehler("");
-    await speichereLead({ id: leadId, selbstauskunft: d, selbstauskunftEingereichtAm: new Date().toISOString() });
+    const ergebnis = await speichereLead({ id: leadId, selbstauskunft: d, selbstauskunftEingereichtAm: new Date().toISOString() });
+    if (!ergebnis) {
+      return setFehler("Speichern hat leider nicht geklappt. Bitte kurz warten und nochmal versuchen.");
+    }
     setGesendet(true);
   };
 
