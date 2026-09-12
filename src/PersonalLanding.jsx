@@ -12,6 +12,54 @@ const INK = "#0A0A0B";
 const CARD = "rgba(255,255,255,0.045)";
 const HAIRLINE = "rgba(255,255,255,0.09)";
 
+/* ============================================================================
+   Cookie-Consent – bewusst derselbe Cookie-Name (vk_consent) wie auf
+   philippstreib.com/analyse, damit eine einmal getroffene Entscheidung auf
+   beiden Seiten gilt und niemand zweimal gefragt wird. Diese Seite selbst
+   setzt aktuell keine Analyse-Cookies, der Banner steht hier nur aus
+   Konsistenzgründen und ist schon bereit, falls hier später mal Tracking
+   dazukommt.
+   ========================================================================== */
+const CONSENT_COOKIE = "vk_consent";
+
+function leseConsent() {
+  if (typeof document === "undefined") return null;
+  const treffer = document.cookie.match(/(?:^|; )vk_consent=([^;]*)/);
+  return treffer ? decodeURIComponent(treffer[1]) : null;
+}
+
+function setzeConsent(wert) {
+  if (typeof document === "undefined") return;
+  const einJahr = 60 * 60 * 24 * 365;
+  document.cookie = `${CONSENT_COOKIE}=${wert}; max-age=${einJahr}; path=/; SameSite=Lax`;
+}
+
+function ConsentBanner() {
+  const [status, setStatus] = useState(() => leseConsent());
+  if (status) return null;
+  const entscheiden = (wert) => { setzeConsent(wert); setStatus(wert); };
+
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-50 p-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}>
+      <div className="max-w-xl mx-auto rounded-2xl p-4 backdrop-blur-xl" style={{ background: "#141416", border: `1px solid ${HAIRLINE}`, boxShadow: "0 12px 40px rgba(0,0,0,0.6)" }}>
+        <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
+          Wir verwenden Cookies für Analyse und Marketing, um dieses Angebot zu verbessern.
+        </p>
+        <div className="flex gap-2 mt-3">
+          <button onClick={() => entscheiden("denied")} className="flex-1 rounded-xl py-2.5 text-sm"
+            style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)", border: `1px solid ${HAIRLINE}` }}>
+            Ablehnen
+          </button>
+          <button onClick={() => entscheiden("granted")} className="flex-1 rounded-xl py-2.5 text-sm font-medium"
+            style={{ background: GOLD, color: "#15130B" }}>
+            Akzeptieren
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const KONTAKT = {
   whatsappNummer: "4915787606321",
   whatsappText: "Hallo Philipp, ich interessiere mich für eine Kapitalanlage-Immobilie.",
@@ -178,33 +226,127 @@ function Impressum({ onZurueck }) {
 
 function Datenschutz({ onZurueck }) {
   const I = IMPRESSUM;
+  const Untertitel = ({ children }) => (
+    <div className="text-sm font-semibold mt-4 mb-1.5" style={{ color: "#fff" }}>{children}</div>
+  );
+
   return (
     <div className="min-h-screen px-5 pt-10 pb-20 max-w-2xl mx-auto">
       <button onClick={onZurueck} className="text-sm mb-8 -ml-1 p-1" style={{ color: "rgba(255,255,255,0.5)" }}>← Zurück</button>
       <h1 className="text-2xl font-semibold tracking-tight">Datenschutzerklärung</h1>
-      <RechtstextAbschnitt titel="Verantwortliche Stelle">
-        {I.firma}, {I.strasse}, {I.ort}. Kontakt: {I.email}, {I.telefon}.
+
+      <RechtstextAbschnitt titel="1. Datenschutz auf einen Blick">
+        <Untertitel>Allgemeine Hinweise</Untertitel>
+        Die folgenden Hinweise geben einen einfachen Überblick darüber, was mit Ihren personenbezogenen
+        Daten passiert, wenn Sie diese Website besuchen. Personenbezogene Daten sind alle Daten, mit denen
+        Sie persönlich identifiziert werden können. Ausführliche Informationen zum Thema Datenschutz
+        entnehmen Sie unserer unter diesem Text aufgeführten Datenschutzerklärung.
+
+        <Untertitel>Datenerfassung auf dieser Website</Untertitel>
+        <strong style={{ color: "#fff" }}>Wer ist verantwortlich für die Datenerfassung auf dieser Website?</strong><br />
+        Die Datenverarbeitung auf dieser Website erfolgt durch den Websitebetreiber. Dessen Kontaktdaten
+        können Sie dem Abschnitt „Hinweis zur verantwortlichen Stelle" in dieser Datenschutzerklärung entnehmen.
+        <br /><br />
+        <strong style={{ color: "#fff" }}>Wie erfassen wir Ihre Daten?</strong><br />
+        Ihre Daten werden zum einen dadurch erhoben, dass Sie uns diese mitteilen, z. B. über einen der
+        Kontakt-Buttons auf dieser Seite.<br />
+        Andere Daten werden automatisch beim Besuch der Website durch unsere IT-Systeme erfasst. Das sind
+        vor allem technische Daten (z. B. Internetbrowser, Betriebssystem oder Uhrzeit des Seitenaufrufs).
+        Die Erfassung dieser Daten erfolgt automatisch, sobald Sie diese Website betreten.
+        <br /><br />
+        <strong style={{ color: "#fff" }}>Wofür nutzen wir Ihre Daten?</strong><br />
+        Ein Teil der Daten wird erhoben, um eine fehlerfreie Bereitstellung der Website zu gewährleisten.
+        Sofern Sie über einen der Kontakt-Buttons ein Beratungsgespräch anfragen, werden die übermittelten
+        Daten zur Bearbeitung dieser Anfrage verarbeitet.
+        <br /><br />
+        <strong style={{ color: "#fff" }}>Welche Rechte haben Sie bezüglich Ihrer Daten?</strong><br />
+        Sie haben jederzeit das Recht, unentgeltlich Auskunft über Herkunft, Empfänger und Zweck Ihrer
+        gespeicherten personenbezogenen Daten zu erhalten. Sie haben außerdem ein Recht, die Berichtigung
+        oder Löschung dieser Daten zu verlangen. Außerdem haben Sie das Recht, unter bestimmten Umständen
+        die Einschränkung der Verarbeitung Ihrer personenbezogenen Daten zu verlangen. Des Weiteren steht
+        Ihnen ein Beschwerderecht bei der zuständigen Aufsichtsbehörde zu. Hierzu sowie zu weiteren Fragen
+        zum Thema Datenschutz können Sie sich jederzeit an uns wenden.
       </RechtstextAbschnitt>
-      <RechtstextAbschnitt titel="Hosting">
-        Diese Seite wird bei Vercel Inc. gehostet. Beim Aufruf werden automatisch technische Daten
-        (u. a. IP-Adresse, Zeitpunkt des Zugriffs, aufgerufene Seite) in Server-Log-Dateien
-        verarbeitet, um den Betrieb sicherzustellen (Art. 6 Abs. 1 lit. f DSGVO).
+
+      <RechtstextAbschnitt titel="2. Hosting">
+        <Untertitel>Externes Hosting</Untertitel>
+        Diese Website wird extern gehostet. Die personenbezogenen Daten, die auf dieser Website erfasst
+        werden, werden auf den Servern des Hosters gespeichert. Hierbei kann es sich v. a. um IP-Adressen,
+        Kontaktanfragen, Meta- und Kommunikationsdaten, Namen, Websitezugriffe und sonstige Daten, die über
+        eine Website generiert werden, handeln.
+        <br /><br />
+        Das externe Hosting erfolgt zum Zwecke der Vertragserfüllung gegenüber unseren potenziellen und
+        bestehenden Kunden (Art. 6 Abs. 1 lit. b DSGVO) und im Interesse einer sicheren, schnellen und
+        effizienten Bereitstellung unseres Online-Angebots durch einen professionellen Anbieter (Art. 6
+        Abs. 1 lit. f DSGVO).
+        <br /><br />
+        Unser Hoster wird Ihre Daten nur insoweit verarbeiten, wie dies zur Erfüllung seiner
+        Leistungspflichten erforderlich ist, und unsere Weisungen in Bezug auf diese Daten befolgen.
+        <br /><br />
+        Wir setzen folgenden Hoster ein: Vercel Inc., 340 S Lemon Ave #4133, Walnut, CA 91789, USA. Vercel
+        stellt die technische Infrastruktur bereit, die für den Abruf und die Auslieferung unserer Seiten
+        notwendig ist. Beim Besuch unserer Website werden automatisch bestimmte Verbindungsdaten an Vercel
+        übermittelt – darunter etwa Ihre IP-Adresse, Informationen zu Ihrem Browser, Datum und Uhrzeit des
+        Zugriffs sowie aufgerufene Ressourcen. Diese Verarbeitung ist erforderlich, um die Stabilität und
+        Sicherheit des Webangebots zu gewährleisten und beruht auf Art. 6 Abs. 1 lit. f DSGVO
+        (berechtigtes Interesse).
+
+        <Untertitel>Übermittlung personenbezogener Daten in die USA</Untertitel>
+        Vercel kann Daten auch auf Servern in den Vereinigten Staaten verarbeiten. Nach aktueller
+        Rechtsprechung des Europäischen Gerichtshofs gilt für Datenübermittlungen in die USA kein
+        durchgehend gleichwertiges Datenschutzniveau wie in der EU. Um dennoch ein hohes Datenschutzniveau
+        zu wahren, stützt sich Vercel auf Standardvertragsklauseln nach Art. 46 Abs. 2 und 3 DSGVO. Weitere
+        Informationen: vercel.com/legal/privacy-policy
       </RechtstextAbschnitt>
-      <RechtstextAbschnitt titel="Kontaktaufnahme (WhatsApp, E-Mail, Telefon)">
-        Nehmen Sie über einen der Kontakt-Buttons auf dieser Seite Verbindung zu uns auf, verarbeiten
-        wir die dabei übermittelten Daten zur Bearbeitung Ihrer Anfrage (Art. 6 Abs. 1 lit. b bzw. f
-        DSGVO). Eine Kontaktaufnahme über WhatsApp läuft technisch über Dienste der Meta Platforms
-        Ireland Limited; es gelten zusätzlich deren Datenschutzhinweise.
+
+      <RechtstextAbschnitt titel="3. Allgemeine Hinweise und Pflichtinformationen">
+        <Untertitel>Hinweis zur verantwortlichen Stelle</Untertitel>
+        Die verantwortliche Stelle für die Datenverarbeitung auf dieser Website ist:<br /><br />
+        {I.firma}<br />
+        {I.strasse}<br />
+        {I.ort}<br />
+        Telefon: {I.telefon}<br />
+        E-Mail: {I.email}
+
+        <Untertitel>Speicherdauer</Untertitel>
+        Soweit innerhalb dieser Datenschutzerklärung keine speziellere Speicherdauer genannt wurde,
+        verbleiben Ihre personenbezogenen Daten bei uns, bis der Zweck für die Datenverarbeitung entfällt
+        oder Sie ein berechtigtes Löschersuchen geltend machen, sofern keine gesetzlichen
+        Aufbewahrungsfristen entgegenstehen.
+
+        <Untertitel>SSL- bzw. TLS-Verschlüsselung</Untertitel>
+        Diese Seite nutzt aus Sicherheitsgründen und zum Schutz der Übertragung vertraulicher Inhalte eine
+        SSL- bzw. TLS-Verschlüsselung. Eine verschlüsselte Verbindung erkennen Sie daran, dass die
+        Adresszeile des Browsers von „http://" auf „https://" wechselt und an dem Schloss-Symbol in Ihrer
+        Browserzeile.
       </RechtstextAbschnitt>
-      <RechtstextAbschnitt titel="Verlinkte Vermögensanalyse">
+
+      <RechtstextAbschnitt titel="4. Datenerfassung auf dieser Website">
+        <Untertitel>Cookies</Untertitel>
+        Diese Seite zeigt Ihnen ein Cookie-Consent-Banner und speichert Ihre Entscheidung dazu in einem
+        einfachen Präferenz-Cookie (Art. 6 Abs. 1 lit. f DSGVO). Analyse- oder Marketing-Cookies werden auf
+        dieser Seite selbst aktuell nicht eingesetzt und daher durch Ihre Entscheidung auch nicht aktiviert.
+
+        <Untertitel>Server-Log-Dateien</Untertitel>
+        Der Provider der Seiten erhebt und speichert automatisch Informationen in so genannten
+        Server-Log-Dateien, die Ihr Browser automatisch an uns übermittelt. Dies sind: Browsertyp und
+        -version, verwendetes Betriebssystem, Referrer URL, Hostname des zugreifenden Rechners, Uhrzeit
+        der Serveranfrage, IP-Adresse. Eine Zusammenführung dieser Daten mit anderen Datenquellen wird
+        nicht vorgenommen. Die Erfassung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO.
+
+        <Untertitel>Kontaktaufnahme (WhatsApp, E-Mail, Telefon)</Untertitel>
+        Nehmen Sie über einen der Kontakt-Buttons auf dieser Seite Verbindung zu uns auf, verarbeiten wir
+        die dabei übermittelten Daten zur Bearbeitung Ihrer Anfrage (Art. 6 Abs. 1 lit. b bzw. f DSGVO).
+        Eine Kontaktaufnahme über WhatsApp läuft technisch über Dienste der Meta Platforms Ireland
+        Limited; es gelten zusätzlich deren Datenschutzhinweise (facebook.com/about/privacy/).
+      </RechtstextAbschnitt>
+
+      <RechtstextAbschnitt titel="5. Verlinkte Vermögensanalyse">
         Der Button "Kostenlose Vermögensanalyse starten" führt zu einem separaten Analyse-Tool unter
-        philippstreib.com/analyse. Dort gelten eigene, ausführlichere Datenschutzhinweise, abrufbar
-        direkt in diesem Tool.
-      </RechtstextAbschnitt>
-      <RechtstextAbschnitt titel="Ihre Rechte">
-        Sie haben das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung
-        Ihrer personenbezogenen Daten sowie ein Beschwerderecht bei der zuständigen
-        Datenschutz-Aufsichtsbehörde. Wenden Sie sich hierzu gerne direkt an uns.
+        philippstreib.com/analyse. Dort werden – anders als auf dieser Seite – im Rahmen des Funnels
+        Kontaktdaten erhoben und, sofern Sie einwilligen, Analyse-Cookies (Meta Pixel, Google Analytics)
+        eingesetzt. Die dafür geltenden, ausführlicheren Datenschutzhinweise finden Sie direkt in diesem
+        Tool.
       </RechtstextAbschnitt>
     </div>
   );
@@ -250,7 +392,7 @@ function Hero({ t }) {
         <PortraitFoto groesse={64} />
         <div>
           <div className="text-lg font-semibold leading-tight">Philipp Streib</div>
-          <div className="text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>Gründer, Wohnblick Immobilien</div>
+          <div className="text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>Kapitalanlage-Experte</div>
         </div>
       </div>
       <div style={{ transform: `translateY(${t ? -versatzLangsam : 0}px)`, transition: "transform .1s linear" }}>
@@ -567,8 +709,8 @@ export default function PersonalLanding() {
   const [t, setT] = useState(0);
   useEffect(() => { const id = setTimeout(() => setT(1), 80); return () => clearTimeout(id); }, []);
 
-  if (phase === "impressum") return <div className="min-h-screen w-full antialiased" style={{ background: INK, color: "#fff" }}><Impressum onZurueck={() => setPhase("start")} /></div>;
-  if (phase === "datenschutz") return <div className="min-h-screen w-full antialiased" style={{ background: INK, color: "#fff" }}><Datenschutz onZurueck={() => setPhase("start")} /></div>;
+  if (phase === "impressum") return <div className="min-h-screen w-full antialiased" style={{ background: INK, color: "#fff" }}><Impressum onZurueck={() => setPhase("start")} /><ConsentBanner /></div>;
+  if (phase === "datenschutz") return <div className="min-h-screen w-full antialiased" style={{ background: INK, color: "#fff" }}><Datenschutz onZurueck={() => setPhase("start")} /><ConsentBanner /></div>;
 
   return (
     <div className="min-h-screen w-full antialiased relative" style={{ background: INK, color: "#fff" }}>
@@ -586,6 +728,7 @@ export default function PersonalLanding() {
         }
       `}</style>
       <AmbientBackground />
+      <ConsentBanner />
       <div className="relative z-10 min-h-screen px-5 pt-6 pb-20 max-w-2xl mx-auto">
         <Hero t={t} />
         <ZahlenSektion />

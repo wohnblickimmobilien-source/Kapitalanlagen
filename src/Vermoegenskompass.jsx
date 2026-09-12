@@ -112,6 +112,7 @@ const LEAD_SPALTEN = {
   crmStatus: "crm_status", notizVerlauf: "notiz_verlauf",
   selbstauskunft: "selbstauskunft", selbstauskunftEingereichtAm: "selbstauskunft_eingereicht_am",
   analyse: "analyse", analyseAktualisiertAm: "analyse_aktualisiert_am",
+  wiedervorlageAm: "wiedervorlage_am", letzterKontaktAm: "letzter_kontakt_am", links: "links",
 };
 
 /** Flaches Lead-Objekt (wie es die App überall nutzt) → Tabellenzeile mit
@@ -4083,8 +4084,50 @@ function CRMFeld({ label, wert }) {
   );
 }
 
-function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysieren }) {
+/** Öffnet die Selbstauskunft als sauber formatiertes, druckbares Dokument in
+ * einem neuen Fenster und startet direkt den Systemdruckdialog – von dort
+ * lässt sich "Als PDF speichern" wählen, ohne eine zusätzliche Bibliothek. */
+function druckeSelbstauskunft(lead) {
+  const s = lead.selbstauskunft;
+  if (!s) return;
+  const zeile = (label, wert) => (wert ? `<div class="zeile"><span class="label">${label}</span><span class="wert">${String(wert).replace(/</g, "&lt;")}</span></div>` : "");
+  const felder = Object.entries(SELBSTAUSKUNFT_LABELS).map(([key, label]) => zeile(label, s[key])).join("");
+  const weitere = (s.weitereVermoegenswerte || [])
+    .map((w) => zeile(w.text, w.betrag ? `${w.betrag} €` : "–")).join("");
+  const eingereicht = lead.selbstauskunftEingereichtAm
+    ? new Date(lead.selbstauskunftEingereichtAm).toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" }) : "–";
+
+  const fenster = window.open("", "_blank");
+  if (!fenster) return;
+  fenster.document.write(`
+    <!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
+    <title>Selbstauskunft – ${lead.vorname} ${lead.nachname}</title>
+    <style>
+      body { font-family: -apple-system, "Segoe UI", Arial, sans-serif; color: #111; padding: 32px; max-width: 700px; margin: 0 auto; }
+      h1 { font-size: 20px; margin-bottom: 2px; }
+      .meta { color: #666; font-size: 12px; margin-bottom: 24px; }
+      h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: #888; margin: 24px 0 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+      .zeile { display: flex; justify-content: space-between; gap: 16px; padding: 5px 0; border-bottom: 1px solid #eee; font-size: 13px; }
+      .label { color: #666; }
+      .wert { font-weight: 600; text-align: right; }
+      @media print { body { padding: 0; } }
+    </style></head><body>
+    <h1>Selbstauskunft – ${lead.vorname} ${lead.nachname}</h1>
+    <div class="meta">Eingegangen am ${eingereicht} · erstellt über ${CONFIG.marke.firma}</div>
+    <h2>Angaben</h2>
+    ${felder}
+    ${weitere ? `<h2>Weitere Vermögenswerte</h2>${weitere}` : ""}
+    </body></html>
+  `);
+  fenster.document.close();
+  fenster.focus();
+  setTimeout(() => fenster.print(), 300);
+}
+
+function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysieren, onRefresh }) {
   const [neueNotiz, setNeueNotiz] = useState("");
+  const [neuerLinkUrl, setNeuerLinkUrl] = useState("");
+  const [neuerLinkLabel, setNeuerLinkLabel] = useState("");
   const [loeschenBestaetigen, setLoeschenBestaetigen] = useState(false);
   const [linkKopiert, setLinkKopiert] = useState(false);
   const [analyseLinkKopiert, setAnalyseLinkKopiert] = useState(false);
@@ -4123,11 +4166,26 @@ function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysiere
     setNeueNotiz("");
   };
 
+  const [aktualisiertGerade, setAktualisiertGerade] = useState(false);
+  const jetztAktualisieren = async () => {
+    if (!onRefresh || aktualisiertGerade) return;
+    setAktualisiertGerade(true);
+    await onRefresh();
+    setTimeout(() => setAktualisiertGerade(false), 500);
+  };
+
   return (
     <div className="min-h-screen px-5 pt-10 pb-20 max-w-2xl mx-auto" style={{ color: "#fff" }}>
-      <button onClick={onZurueck} className="flex items-center gap-1.5 text-sm mb-6 -ml-1 p-1" style={{ color: "rgba(255,255,255,0.5)" }}>
-        <ArrowLeft size={16} /> Zurück zur Liste
-      </button>
+      <div className="flex items-center justify-between mb-6">
+        <button onClick={onZurueck} className="flex items-center gap-1.5 text-sm -ml-1 p-1" style={{ color: "rgba(255,255,255,0.5)" }}>
+          <ArrowLeft size={16} /> Zurück zur Liste
+        </button>
+        {onRefresh && (
+          <button onClick={jetztAktualisieren} className="flex items-center gap-1.5 text-sm p-1" style={{ color: "rgba(255,255,255,0.5)" }}>
+            <RefreshCw size={15} style={{ animation: aktualisiertGerade ? "vkSpin .6s linear" : "none" }} /> Aktualisieren
+          </button>
+        )}
+      </div>
 
       <h1 className="text-2xl font-semibold tracking-tight">{lead.vorname} {lead.nachname}</h1>
       <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
@@ -4163,6 +4221,33 @@ function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysiere
           <Calculator size={15} /> Kunden analysieren
         </button>
       )}
+
+      <div className="mt-7 grid grid-cols-2 gap-3">
+        <div>
+          <div className="text-xs uppercase tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>Letzter Kontakt</div>
+          <button onClick={() => onAktualisieren({ letzterKontaktAm: new Date().toISOString() })}
+            className="w-full text-left rounded-xl px-3.5 py-2.5 text-sm transition-colors"
+            style={{ background: CARD, border: `1px solid ${HAIRLINE}` }}>
+            {lead.letzterKontaktAm ? (
+              <>
+                <div style={{ color: "rgba(255,255,255,0.8)" }}>
+                  {new Date(lead.letzterKontaktAm).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                </div>
+                <div className="text-xs mt-0.5" style={{ color: GOLD_SOFT }}>Jetzt aktualisieren</div>
+              </>
+            ) : (
+              <div style={{ color: GOLD_SOFT }}>Jetzt kontaktiert</div>
+            )}
+          </button>
+        </div>
+        <div>
+          <div className="text-xs uppercase tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>Wiedervorlage</div>
+          <input type="date" value={lead.wiedervorlageAm ? lead.wiedervorlageAm.slice(0, 10) : ""}
+            onChange={(e) => onAktualisieren({ wiedervorlageAm: e.target.value ? new Date(e.target.value).toISOString() : null })}
+            className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none"
+            style={{ background: CARD, border: `1px solid ${HAIRLINE}`, color: lead.wiedervorlageAm ? "#fff" : "rgba(255,255,255,0.35)", colorScheme: "dark" }} />
+        </div>
+      </div>
 
       <div className="mt-7">
         <div className="text-xs uppercase tracking-widest mb-2.5" style={{ color: "rgba(255,255,255,0.4)" }}>Status</div>
@@ -4227,44 +4312,82 @@ function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysiere
       )}
 
       <div className="mt-7">
-        <div className="text-xs uppercase tracking-widest mb-2.5" style={{ color: "rgba(255,255,255,0.4)" }}>Seine Auswertung</div>
-        <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${HAIRLINE}` }}>
-          <p className="text-sm leading-relaxed mb-3" style={{ color: "rgba(255,255,255,0.6)" }}>
-            Dauerhafter Link zu {lead.vorname}s eigener Auswertung – zeigt seine Zahlen wieder, ohne den
-            Funnel erneut durchlaufen zu müssen. Gut geeignet, um dranzubleiben.
-          </p>
-          <div className="text-xs px-3 py-2.5 rounded-lg mb-3 break-all" style={{ background: "rgba(0,0,0,0.3)", color: "rgba(255,255,255,0.5)" }}>
-            {meineAnalyseLink}
-          </div>
-          <div className="flex gap-2">
-            <button onClick={analyseLinkKopieren} className="text-xs font-medium px-3.5 py-2 rounded-full transition-colors"
-              style={{ background: analyseLinkKopiert ? "rgba(52,211,153,0.15)" : "rgba(255,255,255,0.06)", color: analyseLinkKopiert ? GREEN : "rgba(255,255,255,0.7)", border: `1px solid ${analyseLinkKopiert ? "rgba(52,211,153,0.3)" : HAIRLINE}` }}>
-              {analyseLinkKopiert ? "Link kopiert ✓" : "Link kopieren"}
-            </button>
-            <a href={waLink(`Hallo ${lead.vorname}, hier nochmal der Link zu deiner Auswertung: ${meineAnalyseLink}`)}
-              target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs font-medium px-3.5 py-2 rounded-full transition-colors"
-              style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${HAIRLINE}`, color: "rgba(255,255,255,0.7)" }}>
-              <MessageCircle size={13} /> Per WhatsApp senden
-            </a>
-          </div>
+        <div className="text-xs uppercase tracking-widest mb-2.5" style={{ color: "rgba(255,255,255,0.4)" }}>Links</div>
+        <div className="flex gap-2 mb-3">
+          <input value={neuerLinkLabel} onChange={(e) => setNeuerLinkLabel(e.target.value)} placeholder="Bezeichnung"
+            className="w-28 shrink-0 rounded-xl px-3 py-2.5 text-sm outline-none"
+            style={{ background: CARD, border: `1px solid ${HAIRLINE}`, color: "#fff" }} />
+          <input value={neuerLinkUrl} onChange={(e) => setNeuerLinkUrl(e.target.value)} placeholder="https://…"
+            className="flex-1 min-w-0 rounded-xl px-3 py-2.5 text-sm outline-none"
+            style={{ background: CARD, border: `1px solid ${HAIRLINE}`, color: "#fff" }} />
+          <button onClick={() => {
+            const url = neuerLinkUrl.trim();
+            if (!url) return;
+            const eintrag = { id: `${Date.now()}`, label: neuerLinkLabel.trim() || url, url };
+            onAktualisieren({ links: [eintrag, ...(lead.links || [])] });
+            setNeuerLinkUrl(""); setNeuerLinkLabel("");
+          }} className="shrink-0 rounded-xl px-4 text-sm font-medium transition-colors"
+            style={{
+              background: neuerLinkUrl.trim() ? GOLD : "rgba(255,255,255,0.06)",
+              color: neuerLinkUrl.trim() ? "#15130B" : "rgba(255,255,255,0.3)",
+              cursor: neuerLinkUrl.trim() ? "pointer" : "not-allowed",
+            }}>
+            +
+          </button>
         </div>
+        {(lead.links || []).length > 0 && (
+          <div className="space-y-2">
+            {lead.links.map((l) => (
+              <div key={l.id} className="flex items-center justify-between gap-2 rounded-xl px-3.5 py-2.5"
+                style={{ background: CARD, border: `1px solid ${HAIRLINE}` }}>
+                <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-sm truncate" style={{ color: GOLD_SOFT }}>
+                  {l.label}
+                </a>
+                <button onClick={() => onAktualisieren({ links: lead.links.filter((x) => x.id !== l.id) })}
+                  className="shrink-0 p-1" style={{ color: "rgba(255,255,255,0.3)" }}>
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="mt-7">
-        <div className="text-xs uppercase tracking-widest mb-2.5" style={{ color: "rgba(255,255,255,0.4)" }}>Selbstauskunft</div>
+        <div className="flex items-center gap-2 mb-2.5">
+          <div className="text-xs uppercase tracking-widest" style={{ color: GOLD_SOFT }}>Selbstauskunft</div>
+          {lead.selbstauskunft && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+              style={{ background: "rgba(52,211,153,0.15)", color: GREEN, border: "1px solid rgba(52,211,153,0.35)" }}>
+              <Check size={9} strokeWidth={3} /> Eingegangen
+            </span>
+          )}
+        </div>
         {lead.selbstauskunft ? (
-          <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${HAIRLINE}` }}>
+          <div className="rounded-2xl p-4" style={{ background: "rgba(201,162,39,0.06)", border: "1px solid rgba(201,162,39,0.22)" }}>
             <div className="text-xs mb-3" style={{ color: "rgba(255,255,255,0.4)" }}>
               Eingegangen am {new Date(lead.selbstauskunftEingereichtAm).toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" })}
             </div>
             {Object.entries(SELBSTAUSKUNFT_LABELS).map(([key, label]) => (
               <CRMFeld key={key} label={label} wert={lead.selbstauskunft[key]} />
             ))}
+            {(lead.selbstauskunft.weitereVermoegenswerte || []).length > 0 && (
+              <>
+                <div className="text-sm font-medium mt-3 mb-1" style={{ color: "rgba(255,255,255,0.85)" }}>Weitere Vermögenswerte</div>
+                {lead.selbstauskunft.weitereVermoegenswerte.map((w) => (
+                  <CRMFeld key={w.id} label={w.text} wert={w.betrag ? `${w.betrag} €` : "–"} />
+                ))}
+              </>
+            )}
+            <button onClick={() => druckeSelbstauskunft(lead)}
+              className="w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 mt-3 text-xs font-medium transition-colors"
+              style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${HAIRLINE}`, color: "rgba(255,255,255,0.7)" }}>
+              <Receipt size={13} /> Als PDF speichern / drucken
+            </button>
           </div>
         ) : (
-          <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${HAIRLINE}` }}>
-            <p className="text-sm leading-relaxed mb-3" style={{ color: "rgba(255,255,255,0.6)" }}>
+          <div className="rounded-2xl p-4" style={{ background: "rgba(201,162,39,0.1)", border: "1px solid rgba(201,162,39,0.3)" }}>
+            <p className="text-sm leading-relaxed mb-3" style={{ color: "rgba(255,255,255,0.65)" }}>
               Noch keine Selbstauskunft eingegangen. Schick diesen Link an {lead.vorname}, damit die
               Daten für die Bank erfasst werden können.
             </p>
@@ -4273,7 +4396,7 @@ function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysiere
             </div>
             <div className="flex gap-2">
               <button onClick={linkKopieren} className="text-xs font-medium px-3.5 py-2 rounded-full transition-colors"
-                style={{ background: linkKopiert ? "rgba(52,211,153,0.15)" : "rgba(255,255,255,0.06)", color: linkKopiert ? GREEN : "rgba(255,255,255,0.7)", border: `1px solid ${linkKopiert ? "rgba(52,211,153,0.3)" : HAIRLINE}` }}>
+                style={{ background: linkKopiert ? "rgba(52,211,153,0.15)" : GOLD, color: linkKopiert ? GREEN : "#15130B", border: `1px solid ${linkKopiert ? "rgba(52,211,153,0.3)" : "transparent"}` }}>
                 {linkKopiert ? "Link kopiert ✓" : "Link kopieren"}
               </button>
               <a href={waLink(`Hallo ${lead.vorname}, könntest du bitte noch kurz deine Selbstauskunft für die Finanzierung ausfüllen? ${selbstauskunftLink}`)}
@@ -4285,6 +4408,21 @@ function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysiere
             </div>
           </div>
         )}
+      </div>
+
+      <div className="mt-5 flex items-center justify-between gap-3 text-xs">
+        <span style={{ color: "rgba(255,255,255,0.35)" }}>Link zu {lead.vorname}s Auswertung</span>
+        <div className="flex gap-1.5 shrink-0">
+          <button onClick={analyseLinkKopieren} className="font-medium px-2.5 py-1 rounded-full transition-colors"
+            style={{ background: "rgba(255,255,255,0.05)", color: analyseLinkKopiert ? GREEN : "rgba(255,255,255,0.5)" }}>
+            {analyseLinkKopiert ? "Kopiert ✓" : "Kopieren"}
+          </button>
+          <a href={waLink(`Hallo ${lead.vorname}, hier nochmal der Link zu deiner Auswertung: ${meineAnalyseLink}`)}
+            target="_blank" rel="noopener noreferrer"
+            className="font-medium px-2.5 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)" }}>
+            WhatsApp
+          </a>
+        </div>
       </div>
 
       <div className="mt-7">
@@ -4444,7 +4582,7 @@ function CRM({ onZurueck, accessToken }) {
   if (leads !== null && aktivId) {
     const lead = leads.find((l) => l.id === aktivId);
     if (lead) {
-      return <LeadDetail lead={lead} onZurueck={() => setAktivId(null)} onAktualisieren={(patch) => aktualisieren(aktivId, patch)} onLoeschen={() => loeschen(aktivId)} onAnalysieren={() => { setAnalyseVorlage(lead); setAktivId(null); setTab("analyse"); }} />;
+      return <LeadDetail lead={lead} onZurueck={() => setAktivId(null)} onAktualisieren={(patch) => aktualisieren(aktivId, patch)} onLoeschen={() => loeschen(aktivId)} onAnalysieren={() => { setAnalyseVorlage(lead); setAktivId(null); setTab("analyse"); }} onRefresh={laden} />;
     }
   }
 
@@ -4497,16 +4635,22 @@ function CRM({ onZurueck, accessToken }) {
         </div>
       ) : (
         <>
-          <div className="relative mb-4">
-            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" color="rgba(255,255,255,0.35)" />
-            <input
-              value={suche} onChange={(e) => setSuche(e.target.value)}
-              placeholder="Name, Telefon oder E-Mail suchen"
-              className="w-full rounded-xl pl-10 pr-4 py-3 text-sm outline-none transition-colors"
-              style={{ background: "rgba(0,0,0,0.35)", border: `1px solid ${HAIRLINE}`, color: "#fff" }}
-              onFocus={(e) => (e.target.style.borderColor = GOLD)}
-              onBlur={(e) => (e.target.style.borderColor = HAIRLINE)}
-            />
+          <div className="flex gap-2 mb-4">
+            <div className="relative flex-1 min-w-0">
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" color="rgba(255,255,255,0.35)" />
+              <input
+                value={suche} onChange={(e) => setSuche(e.target.value)}
+                placeholder="Name, Telefon oder E-Mail suchen"
+                className="w-full rounded-xl pl-10 pr-4 py-3 text-sm outline-none transition-colors"
+                style={{ background: "rgba(0,0,0,0.35)", border: `1px solid ${HAIRLINE}`, color: "#fff" }}
+                onFocus={(e) => (e.target.style.borderColor = GOLD)}
+                onBlur={(e) => (e.target.style.borderColor = HAIRLINE)}
+              />
+            </div>
+            <button onClick={laden} className="shrink-0 rounded-xl px-3.5 flex items-center justify-center"
+              style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${HAIRLINE}` }}>
+              <RefreshCw size={15} color="rgba(255,255,255,0.5)" />
+            </button>
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-1 mb-5" style={{ scrollbarWidth: "none" }}>
@@ -4539,6 +4683,10 @@ function CRM({ onZurueck, accessToken }) {
             <div className="space-y-2.5">
               {gefiltert.map((lead) => {
                 const st = CRM_STATUS[lead.crmStatus || "neu"];
+                const wvTage = lead.wiedervorlageAm
+                  ? Math.ceil((new Date(lead.wiedervorlageAm).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000)
+                  : null;
+                const letzteNotiz = (lead.notizVerlauf || [])[0];
                 return (
                   <button key={lead.id} onClick={() => setAktivId(lead.id)}
                     className="w-full text-left rounded-2xl p-4 transition-colors"
@@ -4553,6 +4701,12 @@ function CRM({ onZurueck, accessToken }) {
                               <Star size={9} fill={GOLD_SOFT} /> 2× aktiv
                             </span>
                           )}
+                          {lead.selbstauskunft && (
+                            <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+                              style={{ background: "rgba(52,211,153,0.15)", color: GREEN, border: "1px solid rgba(52,211,153,0.35)" }}>
+                              <Check size={9} strokeWidth={3} /> Selbstauskunft
+                            </span>
+                          )}
                         </div>
                         <div className="text-xs mt-0.5 truncate" style={{ color: "rgba(255,255,255,0.4)" }}>
                           {lead.telefon}{lead.zielrente ? ` · Ziel ${eur(lead.zielrente)}/Monat` : ""}{lead.termin ? ` · ${lead.termin}` : ""}
@@ -4565,6 +4719,30 @@ function CRM({ onZurueck, accessToken }) {
                         <ChevronRight size={16} color="rgba(255,255,255,0.3)" />
                       </div>
                     </div>
+
+                    {(wvTage !== null || lead.letzterKontaktAm || letzteNotiz) && (
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2.5" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+                        {wvTage !== null && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+                            style={wvTage <= 0
+                              ? { background: "rgba(248,113,113,0.15)", color: "#F87171", border: "1px solid rgba(248,113,113,0.35)" }
+                              : { background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)", border: `1px solid ${HAIRLINE}` }}>
+                            <Clock size={9} />
+                            {wvTage === 0 ? "Wiedervorlage heute" : wvTage < 0 ? `Wiedervorlage überfällig (${Math.abs(wvTage)}T.)` : `Wiedervorlage in ${wvTage}T.`}
+                          </span>
+                        )}
+                        {lead.letzterKontaktAm && (
+                          <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>
+                            Zuletzt kontaktiert {new Date(lead.letzterKontaktAm).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })}
+                          </span>
+                        )}
+                        {letzteNotiz && (
+                          <span className="text-[10px] truncate" style={{ color: "rgba(255,255,255,0.35)" }}>
+                            · "{letzteNotiz.text.slice(0, 40)}{letzteNotiz.text.length > 40 ? "…" : ""}"
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </button>
                 );
               })}
@@ -4599,6 +4777,7 @@ const SELBSTAUSKUNFT_LEER = {
   mieteinnahmen: "", kapitalertraege: "", sonstigeEinkuenfte: "",
   mieteAktuell: "", bestehendeKreditraten: "", unterhaltszahlungen: "",
   bankguthaben: "", wertpapiere: "", lebensversicherungWert: "", vorhandeneImmobilien: "", fahrzeuge: "",
+  weitereVermoegenswerte: [],
 };
 
 /** Feld-Bezeichnungen für die Anzeige im CRM – hält Formular und Detailansicht synchron. */
@@ -4621,6 +4800,16 @@ function Selbstauskunft({ leadId }) {
   const [einwilligung, setEinwilligung] = useState(false);
   const [gesendet, setGesendet] = useState(false);
   const [fehler, setFehler] = useState("");
+  const [neuerWertText, setNeuerWertText] = useState("");
+  const [neuerWertBetrag, setNeuerWertBetrag] = useState("");
+
+  const wertHinzufuegen = () => {
+    const text = neuerWertText.trim();
+    if (!text) return;
+    const eintrag = { id: `${Date.now()}`, text, betrag: neuerWertBetrag.trim() };
+    setD((vorher) => ({ ...vorher, weitereVermoegenswerte: [...(vorher.weitereVermoegenswerte || []), eintrag] }));
+    setNeuerWertText(""); setNeuerWertBetrag("");
+  };
 
   useEffect(() => {
     (async () => {
@@ -4771,6 +4960,45 @@ function Selbstauskunft({ leadId }) {
         {feld("fahrzeuge", "Fahrzeuge (ca. Wert)", { type: "number", placeholder: "€" })}
       </div>
       <div className="mb-8">{feld("vorhandeneImmobilien", "Vorhandene Immobilien", { placeholder: "z. B. Wert und Restschuld" })}</div>
+
+      <label className="text-xs block mb-2" style={{ color: "rgba(255,255,255,0.45)" }}>
+        Weitere Vermögenswerte (optional)
+      </label>
+      <p className="text-xs mb-3" style={{ color: "rgba(255,255,255,0.35)" }}>
+        Alles, was oben noch nicht abgedeckt ist – z. B. Gold, Firmenanteile, Bausparvertrag.
+      </p>
+      <div className="flex gap-2 mb-3">
+        <input value={neuerWertText} onChange={(e) => setNeuerWertText(e.target.value)} placeholder="Was ist es?"
+          className="flex-1 min-w-0 rounded-xl px-3.5 py-3 text-sm outline-none"
+          style={{ background: "rgba(0,0,0,0.35)", border: `1px solid ${HAIRLINE}`, color: "#fff" }} />
+        <input value={neuerWertBetrag} onChange={(e) => setNeuerWertBetrag(e.target.value)} placeholder="ca. €" type="number"
+          className="w-24 shrink-0 rounded-xl px-3.5 py-3 text-sm outline-none"
+          style={{ background: "rgba(0,0,0,0.35)", border: `1px solid ${HAIRLINE}`, color: "#fff" }} />
+        <button onClick={wertHinzufuegen} className="shrink-0 rounded-xl px-4 text-sm font-medium transition-colors"
+          style={{
+            background: neuerWertText.trim() ? GOLD : "rgba(255,255,255,0.06)",
+            color: neuerWertText.trim() ? "#15130B" : "rgba(255,255,255,0.3)",
+          }}>
+          +
+        </button>
+      </div>
+      {(d.weitereVermoegenswerte || []).length > 0 && (
+        <div className="space-y-2 mb-8">
+          {d.weitereVermoegenswerte.map((w) => (
+            <div key={w.id} className="flex items-center justify-between gap-2 rounded-xl px-3.5 py-2.5"
+              style={{ background: "rgba(0,0,0,0.35)", border: `1px solid ${HAIRLINE}` }}>
+              <span className="text-sm truncate" style={{ color: "#fff" }}>
+                {w.text}{w.betrag ? ` – ${w.betrag} €` : ""}
+              </span>
+              <button onClick={() => setD((vorher) => ({ ...vorher, weitereVermoegenswerte: vorher.weitereVermoegenswerte.filter((x) => x.id !== w.id) }))}
+                className="shrink-0 p-1" style={{ color: "rgba(255,255,255,0.3)" }}>
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      {(d.weitereVermoegenswerte || []).length === 0 && <div className="mb-8" />}
 
       <label className="flex items-start gap-3 mb-6 cursor-pointer">
         <span
