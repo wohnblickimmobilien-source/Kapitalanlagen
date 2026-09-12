@@ -402,11 +402,13 @@ const CONFIG = {
   },
   // Einkommensteuer-Tarif 2025 (§32a EStG), Grundtarif
   steuer: {
-    grundfreibetrag: 12096,
-    zone2Ende: 17443,
-    zone3Ende: 68480,
+    // Einkommensteuertarif nach §32a EStG, Stand Veranlagungszeitraum 2026
+    // (Steuerfortentwicklungsgesetz v. 23.12.2024) – jährlich anzupassen.
+    grundfreibetrag: 12348,
+    zone2Ende: 17799,
+    zone3Ende: 69878,
     zone4Ende: 277825,
-    soliFreigrenze: 19950,
+    soliFreigrenze: 20350,
     soliSatz: 0.055,
     soliMilderung: 0.119,
     werbungskostenPauschale: 1230,
@@ -505,14 +507,14 @@ function einkommensteuer(zvE) {
   if (x <= S.grundfreibetrag) return 0;
   if (x <= S.zone2Ende) {
     const y = (x - S.grundfreibetrag) / 10000;
-    return (932.30 * y + 1400) * y;
+    return (914.51 * y + 1400) * y;
   }
   if (x <= S.zone3Ende) {
     const z = (x - S.zone2Ende) / 10000;
-    return (176.64 * z + 2397) * z + 1015.13;
+    return (173.10 * z + 2397) * z + 1034.87;
   }
-  if (x <= S.zone4Ende) return 0.42 * x - 10911.92;
-  return 0.45 * x - 19246.67;
+  if (x <= S.zone4Ende) return 0.42 * x - 11135.63;
+  return 0.45 * x - 19470.38;
 }
 
 function soli(est) {
