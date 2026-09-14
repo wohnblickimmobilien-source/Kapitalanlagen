@@ -4093,6 +4093,7 @@ const CRM_STATUS = {
   strategiegespraech: { label: "Strategiegespräch", color: "#60A5FA" },
   objektpraesentation: { label: "Objektpräsentation", color: "#818CF8" },
   besichtigung: { label: "Besichtigung", color: "#34D399" },
+  reservierung: { label: "Reservierung unterschrieben", color: "#FBBF24" },
   notartermin: { label: "Notartermin", color: "#A78BFA" },
   abgeschlossen: { label: "Abgeschlossen", color: "#4ADE80" },
   kein_interesse: { label: "Kein Interesse", color: "rgba(255,255,255,0.4)" },
@@ -4147,6 +4148,54 @@ function druckeSelbstauskunft(lead) {
   fenster.document.close();
   fenster.focus();
   setTimeout(() => fenster.print(), 300);
+}
+
+/** Vorgefertigte WhatsApp-Vorlagen für die häufigsten Situationen im
+ * Verkaufsprozess – zentral an einer Stelle statt verstreuter Einzel-Buttons.
+ * "hervorgehoben" markiert die Vorlage, die gerade für DIESEN Lead am
+ * wahrscheinlichsten dran ist (z. B. Erstkontakt bei ganz neuen Leads),
+ * rein auf Basis von schon vorhandenen Lead-Daten – keine Annahme, nur
+ * Ableitung aus Status/Feldern, die der Lead selbst schon hat. */
+function nachrichtenVorlagen(lead, selbstauskunftLink) {
+  const status = lead.crmStatus || "neu";
+  return [
+    {
+      id: "erstkontakt",
+      label: "Erstkontakt",
+      hervorgehoben: status === "neu",
+      text: `Hallo ${lead.vorname}, hier ist Philipp! 👋 Schön, dass du dich zum Thema Immobilien als Kapitalanlage bei mir gemeldet hast.
+
+Ehrlich gesagt: Die meisten überlegen monatelang, bevor sie überhaupt den ersten Schritt machen – dass du das jetzt einfach angehst, ist schon mal ein richtig guter Start! 💪
+
+Am besten zeig ich dir das Ganze einmal in einem Videocall in Ruhe – da rechne ich dir live eine Immobilie durch, erklär dir, wie das funktioniert, und wir gehen in Ruhe deine offenen Fragen durch.
+
+Wann passt's dir diese Woche? 😊`,
+    },
+    {
+      id: "selbstauskunft_anfordern",
+      label: "Selbstauskunft anfordern",
+      hervorgehoben: !lead.selbstauskunft && status !== "neu",
+      text: `Hallo ${lead.vorname}, könntest du bitte noch kurz deine Selbstauskunft für die Finanzierung ausfüllen? ${selbstauskunftLink}`,
+    },
+    {
+      id: "selbstauskunft_erinnerung",
+      label: "Erinnerung: Selbstauskunft",
+      hervorgehoben: false,
+      text: `Hallo ${lead.vorname}, kurze Erinnerung: Hast du schon Zeit gefunden, die Selbstauskunft auszufüllen? Hier nochmal der Link, falls er verloren gegangen ist: ${selbstauskunftLink}`,
+    },
+    {
+      id: "nachfassen",
+      label: "Nach Gespräch nachfassen",
+      hervorgehoben: status === "strategiegespraech" || status === "objektpraesentation" || status === "besichtigung",
+      text: `Hallo ${lead.vorname}, ich wollte kurz nachfragen, wie's bei dir aussieht – gibt's noch offene Fragen von unserem letzten Gespräch?`,
+    },
+    {
+      id: "reservierung",
+      label: "Glückwunsch zur Reservierung",
+      hervorgehoben: status === "reservierung",
+      text: `Hallo ${lead.vorname}, super, dass die Reservierung jetzt unterschrieben ist! Als nächstes kümmern wir uns um den Notartermin – ich melde mich dazu in Kürze bei dir.`,
+    },
+  ];
 }
 
 function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysieren, onRefresh, onAnalyseAnsehen }) {
@@ -4245,6 +4294,26 @@ function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysiere
           style={{ background: "rgba(201,162,39,0.12)", border: "1px solid rgba(201,162,39,0.35)", color: GOLD_SOFT }}>
           <Calculator size={15} /> Kunden analysieren
         </button>
+      )}
+
+      {lead.telefon && (
+        <div className="mt-7">
+          <div className="text-xs uppercase tracking-widest mb-2.5" style={{ color: "rgba(255,255,255,0.4)" }}>Schnellnachrichten</div>
+          <div className="flex flex-col gap-2">
+            {[...nachrichtenVorlagen(lead, selbstauskunftLink)].sort((a, b) => (b.hervorgehoben ? 1 : 0) - (a.hervorgehoben ? 1 : 0)).map((v) => (
+              <a key={v.id} href={waLink(v.text)} target="_blank" rel="noopener noreferrer"
+                onClick={() => onAktualisieren({ letzterKontaktAm: new Date().toISOString() })}
+                className="flex items-center gap-2 rounded-xl px-3.5 py-3 text-sm font-medium transition-colors"
+                style={v.hervorgehoben
+                  ? { background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)", color: GREEN }
+                  : { background: CARD, border: `1px solid ${HAIRLINE}`, color: "rgba(255,255,255,0.7)" }}>
+                <MessageCircle size={14} className="shrink-0" />
+                <span className="flex-1">{v.label}</span>
+                {v.hervorgehoben && <Star size={12} fill={GREEN} />}
+              </a>
+            ))}
+          </div>
+        </div>
       )}
 
       <div className="mt-7 grid grid-cols-2 gap-3">
@@ -4793,7 +4862,7 @@ function CRM({ onZurueck, accessToken, onAnalyseAnsehen }) {
   }
 
   return (
-    <div className="min-h-screen px-5 pt-10 pb-20 max-w-2xl mx-auto">
+    <div className="min-h-screen px-5 pt-10 pb-20 max-w-2xl lg:max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
           <Users size={20} color={GOLD_SOFT} /> {tab === "leads" ? "Leads" : tab === "statistik" ? "Statistik" : "Analyse"}
@@ -4873,21 +4942,21 @@ function CRM({ onZurueck, accessToken, onAnalyseAnsehen }) {
               )}
             </div>
           ) : (
-            <div className="-mx-5 px-5 flex gap-3 overflow-x-auto pb-3" style={{ scrollbarWidth: "thin" }}>
+            <div className="-mx-5 px-5 flex gap-3 lg:gap-4 overflow-x-auto pb-3" style={{ scrollbarWidth: "thin" }}>
               {Object.entries(CRM_STATUS).map(([status, s]) => (
                 <div key={status} ref={(el) => (spaltenRefs.current[status] = el)}
-                  className="shrink-0 rounded-2xl p-2.5 transition-colors"
+                  className="shrink-0 w-[250px] lg:w-[300px] rounded-2xl p-2.5 lg:p-3.5 transition-colors"
                   style={{
-                    width: 250, background: dragOverStatus === status && dragLeadId ? "rgba(201,162,39,0.08)" : "rgba(255,255,255,0.02)",
+                    background: dragOverStatus === status && dragLeadId ? "rgba(201,162,39,0.08)" : "rgba(255,255,255,0.02)",
                     border: `1px solid ${dragOverStatus === status && dragLeadId ? "rgba(201,162,39,0.4)" : HAIRLINE}`,
                   }}>
-                  <div className="flex items-center gap-1.5 px-1.5 py-1.5 mb-1">
+                  <div className="flex items-center gap-1.5 px-1.5 py-1.5 lg:py-2 mb-1">
                     <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.color }} />
-                    <span className="text-xs font-medium truncate">{s.label}</span>
+                    <span className="text-xs lg:text-sm font-medium truncate">{s.label}</span>
                     <span className="text-xs shrink-0" style={{ color: "rgba(255,255,255,0.35)" }}>{spalten[status].length}</span>
                   </div>
 
-                  <div className="space-y-2" style={{ minHeight: 40 }}>
+                  <div className="space-y-2 lg:space-y-2.5" style={{ minHeight: 40 }}>
                     {spalten[status].map((lead) => {
                       const wvTage = lead.wiedervorlageAm
                         ? Math.ceil((new Date(lead.wiedervorlageAm).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000)
@@ -4897,17 +4966,17 @@ function CRM({ onZurueck, accessToken, onAnalyseAnsehen }) {
                       return (
                         <div key={lead.id}
                           onPointerDown={(e) => onKartePointerDown(e, lead.id)}
-                          className="rounded-xl p-3 select-none"
+                          className="rounded-xl p-3 lg:p-3.5 select-none"
                           style={{
                             background: CARD, border: `1px solid ${HAIRLINE}`, touchAction: "none", cursor: "grab",
                             opacity: wirdGezogen ? 0.3 : 1,
                           }}>
                           <div className="flex items-center gap-1 min-w-0 flex-wrap">
-                            <span className="font-medium text-sm truncate">{lead.vorname} {lead.nachname}</span>
+                            <span className="font-medium text-sm lg:text-base truncate">{lead.vorname} {lead.nachname}</span>
                             {lead.vollstaendig && <Star size={11} fill={GOLD_SOFT} color={GOLD_SOFT} />}
                             {lead.selbstauskunft && <Check size={12} strokeWidth={3} color={GREEN} />}
                           </div>
-                          <div className="text-xs mt-0.5 truncate" style={{ color: "rgba(255,255,255,0.4)" }}>
+                          <div className="text-xs lg:text-sm mt-0.5 truncate" style={{ color: "rgba(255,255,255,0.4)" }}>
                             {lead.telefon}{lead.zielrente ? ` · ${eur(lead.zielrente)}/Mon.` : ""}
                           </div>
                           {(wvTage !== null || lead.letzterKontaktAm || letzteNotiz) && (
