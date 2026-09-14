@@ -1271,7 +1271,7 @@ function Bewertungskarten() {
           <span className="tabular-nums">{schnitt.toFixed(1).replace(".", ",")} · {eintraege.length} Bewertungen</span>
         </div>
       </div>
-      <div className={`grid gap-3 ${spalten}`}>
+      <div className={`grid gap-3 items-stretch ${spalten}`}>
         {eintraege.map((b, i) => {
           // Echte, von Philipp/aus dem Original-Zitat stammende Kurzfassung
           // bevorzugen (kohärenter Satz) – automatisches Abschneiden nur als
@@ -1280,7 +1280,7 @@ function Bewertungskarten() {
           const auszug = b.kurz || fallback.text;
           const gekuerzt = !b.kurz && fallback.gekuerzt;
           return (
-            <div key={i} className="rounded-2xl p-5" style={{ background: CARD, border: `1px solid ${HAIRLINE}` }}>
+            <div key={i} className="rounded-2xl p-5 h-full flex flex-col" style={{ background: CARD, border: `1px solid ${HAIRLINE}` }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
@@ -1294,7 +1294,7 @@ function Bewertungskarten() {
                 </div>
                 <Sterne anzahl={b.sterne ?? 5} size={12} />
               </div>
-              <div className="text-sm leading-relaxed mt-3.5" style={{ color: "rgba(255,255,255,0.7)" }}>
+              <div className="text-sm leading-relaxed mt-3.5 flex-1" style={{ color: "rgba(255,255,255,0.7)" }}>
                 <FormatierterText text={auszug} praefix="„" suffix={gekuerzt ? "…" : "\u201C"} />
               </div>
               {b.strategie && (
