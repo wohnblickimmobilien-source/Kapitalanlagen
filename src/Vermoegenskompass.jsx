@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useDeferredValue } from "react";
 import {
-  XAxis, YAxis, ResponsiveContainer, ComposedChart, Area, Line
+  XAxis, YAxis, ResponsiveContainer, ComposedChart, Area, Line, BarChart, Bar, CartesianGrid
 } from "recharts";
 import {
   ArrowRight, ArrowLeft, Check, TrendingUp, Receipt,
@@ -71,6 +71,21 @@ function trackLead(params = {}) {
   if (leseConsent() !== "granted") return;
   if (typeof window.fbq === "function") window.fbq("track", "Lead", params);
   if (typeof window.gtag === "function") window.gtag("event", "generate_lead", params);
+}
+
+/** Zählt einen Funnel-Schritt in einer eigenen, schlanken Tabelle – bewusst
+ * ohne jede personenbezogene Information (keine Session-ID, keine IP, kein
+ * Cookie), nur der Ereignisname und ein Zeitstempel. Läuft deshalb
+ * unabhängig vom Cookie-Consent, wie ein normales Server-Log. Darf den
+ * Funnel nie blockieren – Fehler werden verschluckt. */
+async function zaehleEreignis(name) {
+  try {
+    await fetch(`${CONFIG.supabase.url}/rest/v1/events`, {
+      method: "POST",
+      headers: { ...supabaseHeaders(), Prefer: "return=minimal" },
+      body: JSON.stringify([{ event_name: name }]),
+    });
+  } catch (e) { /* Statistik ist nice-to-have, kein kritischer Pfad */ }
 }
 
 /** Baut den wa.me-Link mit vorausgefüllter Nachricht aus CONFIG.kontakt. */
@@ -1533,6 +1548,7 @@ function DreiWegeVergleich({ onRechner }) {
 function Landing({ onStart, onImpressum, onDatenschutz, onCrm, onRechner }) {
   const [t, setT] = useState(0);
   useEffect(() => { const id = setTimeout(() => setT(1), 80); return () => clearTimeout(id); }, []);
+  useEffect(() => { zaehleEreignis("seitenaufruf"); }, []);
   const ease = { transition: "opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1)" };
   const rise = (d) => ({ opacity: t, transform: t ? "translateY(0)" : "translateY(18px)", transitionDelay: `${d}ms`, ...ease });
 
@@ -2851,6 +2867,7 @@ function TelefonGate({ antworten, onWeiter }) {
     if (!einwilligung) return setFehler("Bitte bestätige die Einwilligung zur Kontaktaufnahme.");
     setFehler("");
     trackLead({ quelle: "telefon_gate" });
+    zaehleEreignis("telefon_abgeschickt");
     // Ein Feld für den ganzen Namen, geht schneller auszufüllen – beim
     // Absenden am ersten Leerzeichen in Vor- und Nachname aufgeteilt, damit
     // das finale Formular beide Felder trotzdem einzeln vorausfüllen kann.
@@ -4544,6 +4561,122 @@ function CRMLogin({ onErfolg }) {
   );
 }
 
+const FUNNEL_SCHRITTE = [
+  { key: "seitenaufruf", label: "Seitenaufruf" },
+  { key: "quiz_gestartet", label: "Quiz gestartet" },
+  { key: "quiz_abgeschlossen", label: "Quiz abgeschlossen" },
+  { key: "telefon_abgeschickt", label: "Telefon-Gate ausgefüllt" },
+  { key: "funnel_vollstaendig", label: "Anfrage vollständig" },
+];
+
+/** Traffic- und Funnel-Statistik – liest aus der eigenen, schlanken
+ * "events"-Tabelle (nur Ereignisname + Zeitstempel, siehe zaehleEreignis).
+ * Zeigt die Besucherzahl pro Tag sowie den Verlauf durch die Funnel-Stufen
+ * inklusive Umwandlungsquote zur jeweils vorherigen Stufe. */
+function StatistikDashboard({ accessToken }) {
+  const [ereignisse, setEreignisse] = useState(null); // null = lädt
+  const [zeitraum, setZeitraum] = useState(30);
+
+  const laden = async () => {
+    setEreignisse(null);
+    try {
+      const seit = new Date(Date.now() - zeitraum * 86400000).toISOString();
+      const res = await fetch(
+        `${CONFIG.supabase.url}/rest/v1/events?select=event_name,created_at&created_at=gte.${seit}&order=created_at.asc`,
+        { headers: supabaseHeaders(accessToken) }
+      );
+      setEreignisse(res.ok ? await res.json() : []);
+    } catch (e) { setEreignisse([]); }
+  };
+
+  useEffect(() => { laden(); }, [zeitraum]);
+
+  if (ereignisse === null) {
+    return <div className="text-center py-16 text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>Lädt …</div>;
+  }
+
+  const zaehler = {};
+  for (const s of FUNNEL_SCHRITTE) zaehler[s.key] = 0;
+  for (const e of ereignisse) if (zaehler[e.event_name] !== undefined) zaehler[e.event_name]++;
+  const maxWert = Math.max(1, ...FUNNEL_SCHRITTE.map((s) => zaehler[s.key]));
+
+  const tage = {};
+  for (const e of ereignisse) {
+    if (e.event_name !== "seitenaufruf") continue;
+    const tag = e.created_at.slice(0, 10);
+    tage[tag] = (tage[tag] || 0) + 1;
+  }
+  const tagesReihe = Object.entries(tage).sort().map(([tag, anzahl]) => ({ tag: tag.slice(5), anzahl }));
+
+  return (
+    <div>
+      <div className="flex gap-2 mb-5">
+        {[7, 30, 90].map((t) => (
+          <button key={t} onClick={() => setZeitraum(t)}
+            className="rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
+            style={{
+              background: zeitraum === t ? "rgba(201,162,39,0.15)" : "rgba(255,255,255,0.05)",
+              color: zeitraum === t ? GOLD_SOFT : "rgba(255,255,255,0.5)",
+              border: `1px solid ${zeitraum === t ? "rgba(201,162,39,0.35)" : HAIRLINE}`,
+            }}>
+            {t} Tage
+          </button>
+        ))}
+        <button onClick={laden} className="ml-auto p-1.5 rounded-full" style={{ color: "rgba(255,255,255,0.4)" }} aria-label="Aktualisieren">
+          <RefreshCw size={14} />
+        </button>
+      </div>
+
+      {ereignisse.length === 0 ? (
+        <div className="text-center py-16 text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
+          Noch keine Daten in diesem Zeitraum.
+        </div>
+      ) : (
+        <>
+          <div className="rounded-2xl p-5 mb-4" style={{ background: CARD, border: `1px solid ${HAIRLINE}` }}>
+            <div className="text-xs uppercase tracking-widest mb-4" style={{ color: "rgba(255,255,255,0.4)" }}>Funnel</div>
+            <div className="space-y-3.5">
+              {FUNNEL_SCHRITTE.map((s, i) => {
+                const wert = zaehler[s.key];
+                const vorher = i > 0 ? zaehler[FUNNEL_SCHRITTE[i - 1].key] : null;
+                const quote = vorher ? Math.round((wert / Math.max(1, vorher)) * 100) : null;
+                return (
+                  <div key={s.key}>
+                    <div className="flex items-baseline justify-between mb-1">
+                      <span className="text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>{s.label}</span>
+                      <span className="text-sm font-semibold tabular-nums" style={{ color: GOLD_SOFT }}>
+                        {wert}
+                        {quote !== null && <span className="text-xs font-normal ml-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>({quote}%)</span>}
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                      <div className="h-full rounded-full" style={{ width: `${Math.max(3, (wert / maxWert) * 100)}%`, background: `linear-gradient(90deg, ${GOLD}, ${GOLD_SOFT})` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-2xl p-5" style={{ background: CARD, border: `1px solid ${HAIRLINE}` }}>
+            <div className="text-xs uppercase tracking-widest mb-4" style={{ color: "rgba(255,255,255,0.4)" }}>Besuche pro Tag</div>
+            <div style={{ height: 140 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={tagesReihe}>
+                  <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.06)" />
+                  <XAxis dataKey="tag" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.35)" }} axisLine={false} tickLine={false} />
+                  <YAxis hide />
+                  <Bar dataKey="anzahl" fill={GOLD} radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function CRM({ onZurueck, accessToken, onAnalyseAnsehen }) {
   const [tab, setTab] = useState("leads"); // "leads" | "analyse"
   const [leads, setLeads] = useState(null);
@@ -4663,7 +4796,7 @@ function CRM({ onZurueck, accessToken, onAnalyseAnsehen }) {
     <div className="min-h-screen px-5 pt-10 pb-20 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <Users size={20} color={GOLD_SOFT} /> {tab === "leads" ? "Leads" : "Analyse"}
+          <Users size={20} color={GOLD_SOFT} /> {tab === "leads" ? "Leads" : tab === "statistik" ? "Statistik" : "Analyse"}
         </h1>
         {tab === "leads" && (
           <div className="flex items-center gap-1">
@@ -4679,7 +4812,7 @@ function CRM({ onZurueck, accessToken, onAnalyseAnsehen }) {
       </div>
 
       <div className="flex gap-2 mb-6">
-        {[{ id: "leads", label: "Leads" }, { id: "analyse", label: "Analyse fürs Gespräch" }].map((t) => (
+        {[{ id: "leads", label: "Leads" }, { id: "statistik", label: "Statistik" }, { id: "analyse", label: "Analyse fürs Gespräch" }].map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className="rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors"
             style={{
@@ -4692,6 +4825,7 @@ function CRM({ onZurueck, accessToken, onAnalyseAnsehen }) {
         ))}
       </div>
 
+      {tab === "statistik" && <StatistikDashboard accessToken={accessToken} />}
       {tab === "analyse" && <AnalyseTool initialLead={analyseVorlage} onVorlageEntfernen={() => setAnalyseVorlage(null)} accessToken={accessToken} />}
 
       {tab === "leads" && (
@@ -5125,6 +5259,7 @@ function KontaktFormular({ telefonVorausgefuellt = "", vornameVorausgefuellt = "
     if (d.telefon.replace(/\D/g, "").length < 7) return setFehler("Die Telefonnummer ist zu kurz.");
     setFehler("");
     setGesendet(true);
+    zaehleEreignis("funnel_vollstaendig");
     // Das Standard-Lead-Event feuert bereits beim Telefon-Gate vor der Auswertung.
     // Hier nur ein Zusatz-Event, damit Meta/GA nicht zwei Leads für dieselbe Person zählen.
     trackEvent("termin_angefragt", { termin: d.termin || undefined });
@@ -5388,10 +5523,10 @@ export default function Vermoegenskompass() {
         }} />
       )}
       <div className="relative">
-        {phase === "start" && <Landing onStart={() => setPhase("quiz")} onImpressum={oeffneImpressum} onDatenschutz={oeffneDatenschutz} onCrm={() => setPhase("crm")} onRechner={() => setPhase("rechner")} />}
+        {phase === "start" && <Landing onStart={() => { zaehleEreignis("quiz_gestartet"); setPhase("quiz"); }} onImpressum={oeffneImpressum} onDatenschutz={oeffneDatenschutz} onCrm={() => setPhase("crm")} onRechner={() => setPhase("rechner")} />}
         {phase === "quiz" && (
           <Quiz antworten={antworten} setAntworten={setAntworten}
-            onFertig={() => setPhase("analyse")} onZurueck={() => setPhase("start")} />
+            onFertig={() => { zaehleEreignis("quiz_abgeschlossen"); setPhase("analyse"); }} onZurueck={() => setPhase("start")} />
         )}
         {phase === "analyse" && <Analyse antworten={antworten} onFertig={() => setPhase("sparvergleich")} />}
         {phase === "sparvergleich" && (
@@ -5443,7 +5578,7 @@ export default function Vermoegenskompass() {
           <RechnerSeite onZurueck={() => {
             if (typeof window !== "undefined") window.location.hash = "";
             setPhase("start");
-          }} onStart={() => setPhase("quiz")} />
+          }} onStart={() => { zaehleEreignis("quiz_gestartet"); setPhase("quiz"); }} />
         )}
       </div>
     </div>
