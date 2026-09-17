@@ -2,8 +2,30 @@ import React, { useState, useEffect, useRef } from "react";
 import { ArrowRight, Star, Phone, Mail, Instagram, MessageCircle, TrendingUp, ShieldCheck, Home, Calculator } from "lucide-react";
 
 /* ============================================================================
+   Traffic-Zählung – dieselbe schlanke "events"-Tabelle wie im Vermögenskompass
+   (Vermoegenskompass.jsx), nur mit einem eigenen Ereignisnamen
+   ("startseite_aufruf" statt "seitenaufruf"), damit sich Besuche auf der
+   Personenmarken-Hauptseite im Dashboard klar von der eigentlichen
+   Vermögensanalyse unterscheiden lassen. Bewusst dieselben Supabase-Werte
+   wie in Vermoegenskompass.jsx, weil beide Dateien unabhängig gebündelt
+   werden und keine Werte teilen.
+   ========================================================================== */
+const SUPABASE_URL = "https://pxqtjmymrtytqwsvzhlr.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4cXRqbXltcnR5dHF3c3Z6aGxyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5NDIxMTcsImV4cCI6MjEwMTUxODExN30.jlG1uV5Cr3cgNhWVpYyZM_pR9YgN1C5MLr4YdXxHxVs";
+
+async function zaehleStartseitenAufruf() {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/events`, {
+      method: "POST",
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, "Content-Type": "application/json", Prefer: "return=minimal" },
+      body: JSON.stringify([{ event_name: "startseite_aufruf" }]),
+    });
+  } catch (e) { /* Statistik ist nice-to-have, kein kritischer Pfad */ }
+}
+
+/* ============================================================================
    Gleiche Design-Tokens wie im Vermögenskompass (bewusst dieselben Werte),
-   damit philippstreib.com und philippstreib.com/analyse wie ein Guss wirken.
+   damit steinreich.immo und steinreich.immo/analyse wie ein Guss wirken.
    ========================================================================== */
 const GOLD = "#C9A227";
 const GOLD_SOFT = "#E3C46A";
@@ -14,11 +36,8 @@ const HAIRLINE = "rgba(255,255,255,0.09)";
 
 /* ============================================================================
    Cookie-Consent – bewusst derselbe Cookie-Name (vk_consent) wie auf
-   philippstreib.com/analyse, damit eine einmal getroffene Entscheidung auf
-   beiden Seiten gilt und niemand zweimal gefragt wird. Diese Seite selbst
-   setzt aktuell keine Analyse-Cookies, der Banner steht hier nur aus
-   Konsistenzgründen und ist schon bereit, falls hier später mal Tracking
-   dazukommt.
+   steinreich.immo/analyse, damit eine einmal getroffene Entscheidung auf
+   beiden Seiten gilt und niemand zweimal gefragt wird.
    ========================================================================== */
 const CONSENT_COOKIE = "vk_consent";
 
@@ -34,25 +53,61 @@ function setzeConsent(wert) {
   document.cookie = `${CONSENT_COOKIE}=${wert}; max-age=${einJahr}; path=/; SameSite=Lax`;
 }
 
+/* ============================================================================
+   Meta Pixel – bindet fbevents.js erst nach Einwilligung ein (Stub-Pattern,
+   keine Daten vor Consent). Gleiche Pixel-ID wie in Vermoegenskompass.jsx
+   eintragen, damit beide Seiten in dieselbe Meta-Kampagne einzahlen.
+   ========================================================================== */
+const META_PIXEL_ID = "1865391607960712";
+
+/** Bindet fbevents.js erst nach Einwilligung ein – exakt Metas eigenes
+ * Stub-Muster (nur als benannte Funktion statt der offiziellen IIFE), damit
+ * Aufrufe vor dem vollständigen Laden korrekt in der von fbevents.js
+ * erwarteten "queue" zwischengespeichert und danach nachgeholt werden. */
+function ladeMetaPixel(pixelId) {
+  if (typeof window === "undefined" || !pixelId || window.fbq) return;
+  const fbq = function () {
+    fbq.callMethod ? fbq.callMethod.apply(fbq, arguments) : fbq.queue.push(arguments);
+  };
+  window.fbq = fbq;
+  if (!window._fbq) window._fbq = fbq;
+  fbq.push = fbq;
+  fbq.loaded = true;
+  fbq.version = "2.0";
+  fbq.queue = [];
+  const script = document.createElement("script");
+  script.async = true;
+  script.src = "https://connect.facebook.net/en_US/fbevents.js";
+  document.head.appendChild(script);
+  window.fbq("init", pixelId);
+  window.fbq("track", "PageView");
+}
+
 function ConsentBanner() {
   const [status, setStatus] = useState(() => leseConsent());
+  useEffect(() => { if (status === "granted") ladeMetaPixel(META_PIXEL_ID); }, [status]);
   if (status) return null;
   const entscheiden = (wert) => { setzeConsent(wert); setStatus(wert); };
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 p-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}>
       <div className="max-w-xl mx-auto rounded-2xl p-4 backdrop-blur-xl" style={{ background: "#141416", border: `1px solid ${HAIRLINE}`, boxShadow: "0 12px 40px rgba(0,0,0,0.6)" }}>
-        <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
-          Wir verwenden Cookies für Analyse und Marketing, um dieses Angebot zu verbessern.
-        </p>
-        <div className="flex gap-2 mt-3">
-          <button onClick={() => entscheiden("denied")} className="flex-1 rounded-xl py-2.5 text-sm"
-            style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)", border: `1px solid ${HAIRLINE}` }}>
-            Ablehnen
+        <div className="flex items-start gap-2.5">
+          <div className="rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ width: 26, height: 26, background: "rgba(201,162,39,0.14)" }}>
+            <ShieldCheck size={13} color={GOLD_SOFT} />
+          </div>
+          <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>
+            Kurz gefragt: Wir nutzen Cookies, um zu sehen, was für dich funktioniert, und die Seite besser zu machen.
+          </p>
+        </div>
+        <div className="flex gap-2 mt-3.5">
+          <button onClick={() => entscheiden("denied")} className="flex-1 rounded-xl py-2.5 text-sm font-medium transition-colors"
+            style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.65)", border: `1px solid ${HAIRLINE}` }}>
+            Nein danke
           </button>
-          <button onClick={() => entscheiden("granted")} className="flex-1 rounded-xl py-2.5 text-sm font-medium"
+          <button onClick={() => entscheiden("granted")} className="flex-1 rounded-xl py-2.5 text-sm font-medium transition-colors"
             style={{ background: GOLD, color: "#15130B" }}>
-            Akzeptieren
+            Klar, passt
           </button>
         </div>
       </div>
@@ -343,7 +398,7 @@ function Datenschutz({ onZurueck }) {
 
       <RechtstextAbschnitt titel="5. Verlinkte Vermögensanalyse">
         Der Button "Kostenlose Vermögensanalyse starten" führt zu einem separaten Analyse-Tool unter
-        philippstreib.com/analyse. Dort werden – anders als auf dieser Seite – im Rahmen des Funnels
+        steinreich.immo/analyse. Dort werden – anders als auf dieser Seite – im Rahmen des Funnels
         Kontaktdaten erhoben und, sofern Sie einwilligen, Analyse-Cookies (Meta Pixel, Google Analytics)
         eingesetzt. Die dafür geltenden, ausführlicheren Datenschutzhinweise finden Sie direkt in diesem
         Tool.
@@ -708,6 +763,7 @@ export default function PersonalLanding() {
   const [phase, setPhase] = useState("start");
   const [t, setT] = useState(0);
   useEffect(() => { const id = setTimeout(() => setT(1), 80); return () => clearTimeout(id); }, []);
+  useEffect(() => { zaehleStartseitenAufruf(); }, []);
 
   if (phase === "impressum") return <div className="min-h-screen w-full antialiased" style={{ background: INK, color: "#fff" }}><Impressum onZurueck={() => setPhase("start")} /><ConsentBanner /></div>;
   if (phase === "datenschutz") return <div className="min-h-screen w-full antialiased" style={{ background: INK, color: "#fff" }}><Datenschutz onZurueck={() => setPhase("start")} /><ConsentBanner /></div>;
@@ -742,7 +798,7 @@ export default function PersonalLanding() {
         <div className="mt-16 flex items-center gap-4">
           <button onClick={() => setPhase("impressum")} className="text-xs underline" style={{ color: "rgba(255,255,255,0.3)" }}>Impressum</button>
           <button onClick={() => setPhase("datenschutz")} className="text-xs underline" style={{ color: "rgba(255,255,255,0.3)" }}>Datenschutz</button>
-          <span className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>© Philipp Streib</span>
+          <span className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>© Steinreich</span>
         </div>
       </div>
     </div>

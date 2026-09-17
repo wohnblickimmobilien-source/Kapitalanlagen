@@ -5,7 +5,7 @@ import {
 import {
   ArrowRight, ArrowLeft, Check, TrendingUp, Receipt,
   Calculator, ChevronRight, Info, UserCheck, MessageCircle, Clock, Star,
-  Phone, Mail, RefreshCw, Search, Users, X, Plus, Trash2
+  Phone, Mail, RefreshCw, Search, Users, X, Plus, Trash2, ShieldCheck
 } from "lucide-react";
 
 /* ============================================================================
@@ -28,12 +28,21 @@ function setzeConsent(wert) {
   document.cookie = `${CONSENT_COOKIE}=${wert}; max-age=${einJahr}; path=/; SameSite=Lax`;
 }
 
-/** Bindet fbevents.js erst nach Einwilligung ein – klassisches Stub-Pattern, keine Daten vor Consent. */
+/** Bindet fbevents.js erst nach Einwilligung ein – exakt Metas eigenes
+ * Stub-Muster (nur als benannte Funktion statt der offiziellen IIFE), damit
+ * Aufrufe vor dem vollständigen Laden korrekt in der von fbevents.js
+ * erwarteten "queue" zwischengespeichert und danach nachgeholt werden. */
 function ladeMetaPixel(pixelId) {
   if (typeof window === "undefined" || !pixelId || window.fbq) return;
-  window.fbq = function () { (window.fbq.q = window.fbq.q || []).push(arguments); };
-  window.fbq.loaded = true;
-  window.fbq.version = "2.0";
+  const fbq = function () {
+    fbq.callMethod ? fbq.callMethod.apply(fbq, arguments) : fbq.queue.push(arguments);
+  };
+  window.fbq = fbq;
+  if (!window._fbq) window._fbq = fbq;
+  fbq.push = fbq;
+  fbq.loaded = true;
+  fbq.version = "2.0";
+  fbq.queue = [];
   const script = document.createElement("script");
   script.async = true;
   script.src = "https://connect.facebook.net/en_US/fbevents.js";
@@ -337,17 +346,22 @@ function ConsentBanner() {
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 p-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}>
       <div className="max-w-xl mx-auto rounded-2xl p-4 backdrop-blur-xl" style={{ background: "#141416", border: `1px solid ${HAIRLINE}`, boxShadow: "0 12px 40px rgba(0,0,0,0.6)" }}>
-        <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
-          Wir verwenden Cookies für Analyse und Marketing, um dieses Angebot zu verbessern.
-        </p>
-        <div className="flex gap-2 mt-3">
-          <button onClick={() => entscheiden("denied")} className="flex-1 rounded-xl py-2.5 text-sm"
-            style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)", border: `1px solid ${HAIRLINE}` }}>
-            Ablehnen
+        <div className="flex items-start gap-2.5">
+          <div className="rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ width: 26, height: 26, background: "rgba(201,162,39,0.14)" }}>
+            <ShieldCheck size={13} color={GOLD_SOFT} />
+          </div>
+          <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>
+            Kurz gefragt: Wir nutzen Cookies, um zu sehen, was für dich funktioniert, und die Seite besser zu machen.
+          </p>
+        </div>
+        <div className="flex gap-2 mt-3.5">
+          <button onClick={() => entscheiden("denied")} className="flex-1 rounded-xl py-2.5 text-sm font-medium transition-colors"
+            style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.65)", border: `1px solid ${HAIRLINE}` }}>
+            Nein danke
           </button>
-          <button onClick={() => entscheiden("granted")} className="flex-1 rounded-xl py-2.5 text-sm font-medium"
+          <button onClick={() => entscheiden("granted")} className="flex-1 rounded-xl py-2.5 text-sm font-medium transition-colors"
             style={{ background: GOLD, color: "#15130B" }}>
-            Akzeptieren
+            Klar, passt
           </button>
         </div>
       </div>
@@ -434,7 +448,7 @@ const CONFIG = {
   // Personenmarke – erscheint auf der Startseite und im Ergebnis-CTA
   marke: {
     name: "Philipp Streib",
-    firma: "Wohnblick Immobilien",
+    firma: "Steinreich",
     erfahrungText: "6+ Jahre Erfahrung im Immobilienmarkt",
   },
   // WhatsApp-Kontakt: Nummer im Format Ländervorwahl+Nummer, ohne '+' und ohne Leerzeichen
@@ -444,7 +458,7 @@ const CONFIG = {
   },
   // Tracking: IDs eintragen, sonst bleiben die Aufrufe wirkungslos (kein Fehler)
   tracking: {
-    metaPixelId: "",   // z. B. "1234567890123456"
+    metaPixelId: "1865391607960712",
     ga4Id: "",         // z. B. "G-XXXXXXXXXX"
   },
   // Wie viele Jahre "Warten" für die Kosten-des-Zuwartens-Zeile verglichen werden
@@ -4703,6 +4717,11 @@ function StatistikDashboard({ accessToken }) {
   const heroAnfragenZahl = useZaehler(gesamtAnfragen, { dauer: 900 });
   const heroConversionZahl = useZaehler(gesamtConversion, { dauer: 900 });
 
+  // Besuche auf der Personenmarken-Hauptseite (steinreich.immo) laufen unter
+  // einem eigenen Ereignisnamen, bewusst getrennt von den Funnel-Schritten
+  // der Vermögensanalyse – die ist der eigentlich relevante Teil.
+  const startseiteBesuche = geladen.filter((e) => e.event_name === "startseite_aufruf").length;
+
   const StatBalken = ({ label, icon: Icon, wert, quote, maxWertObj }) => (
     <div>
       <div className="flex items-center justify-between mb-1.5">
@@ -4786,7 +4805,7 @@ function StatistikDashboard({ accessToken }) {
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: "Besuche", wert: heroBesucheZahl, farbe: GOLD_SOFT },
+              { label: "Besuche (Analyse)", wert: heroBesucheZahl, farbe: GOLD_SOFT },
               { label: "Anfragen", wert: heroAnfragenZahl, farbe: "#4ADE80" },
               { label: "Conversion", wert: heroConversionZahl, farbe: "#60A5FA", suffix: "%" },
             ].map((k) => (
@@ -4800,6 +4819,10 @@ function StatistikDashboard({ accessToken }) {
                 <div className="text-[11px] mt-1" style={{ color: "rgba(255,255,255,0.4)" }}>{k.label}</div>
               </div>
             ))}
+          </div>
+
+          <div className="text-xs text-right" style={{ color: "rgba(255,255,255,0.3)" }}>
+            Zum Vergleich, nicht Teil der Analyse: {startseiteBesuche} Besuche auf steinreich.immo
           </div>
 
           <FunnelBlock titel={`Funnel · letzte ${zeitraum} Tage`} zaehlerObj={zaehler} maxWertObj={maxWert} />
