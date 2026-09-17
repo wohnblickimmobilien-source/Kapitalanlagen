@@ -5,7 +5,8 @@ import {
 import {
   ArrowRight, ArrowLeft, Check, TrendingUp, Receipt,
   Calculator, ChevronRight, Info, UserCheck, MessageCircle, Clock, Star,
-  Phone, Mail, RefreshCw, Search, Users, X, Plus, Trash2, ShieldCheck, Flame
+  Phone, Mail, RefreshCw, Search, Users, X, Plus, Trash2, ShieldCheck, Flame,
+  Target, Calendar, Briefcase, Wallet, Landmark, PiggyBank, Home, Palmtree, Gauge, Coins
 } from "lucide-react";
 
 /* ============================================================================
@@ -287,7 +288,7 @@ function beispielLead() {
     id, erstelltAm: new Date(jetzt - 5 * 86400000).toISOString(),
     vorname: "Max", nachname: "Mustermann", telefon: "0157 12345678",
     email: "max.mustermann@example.com", termin: "Nachmittags", vollstaendig: true,
-    ziele: ["Passive Einnahmen", "Steuern optimieren"],
+    ziel: "Passive Einnahmen",
     alter: 34, status: "angestellt", brutto: 68000,
     eigenkapital: 25000, sparrate: 650,
     hatImmobilien: false, immobilien: 0,
@@ -1648,10 +1649,31 @@ function Landing({ onStart, onImpressum, onDatenschutz, onCrm, onRechner }) {
 }
 
 /* ================================================================= Quiz */
+/** Fragetitel mit vorangestelltem Icon im Gold-Ton des Funnels, statt Emoji –
+ * dezent, passend zur restlichen Optik statt bunt/verspielt. */
+const FrageTitel = (Icon, text) => (
+  <span className="inline-flex items-center gap-2.5">
+    <Icon size={26} color={GOLD_SOFT} strokeWidth={1.75} className="shrink-0" />
+    <span>{text}</span>
+  </span>
+);
+/** Gleiches Prinzip für einzelne Optionen innerhalb einer Frage – kleiner,
+ * damit es neben dem Options-Text nicht dominiert. */
+const OptionIcon = (Icon) => <Icon size={17} color={GOLD_SOFT} strokeWidth={1.75} className="inline-block mr-2 -mt-0.5" />;
+
 const ZIELE = [
   "Vermögen aufbauen", "Steuern optimieren", "Passive Einnahmen",
   "Altersvorsorge", "Kapital sinnvoll investieren",
 ];
+// Nur fürs Anzeigen neben der Option – die gespeicherten ZIELE-Strings
+// bleiben unverändert, weil an mehreren Stellen exakt auf sie geprüft wird.
+const ZIELE_ICON = {
+  "Vermögen aufbauen": TrendingUp,
+  "Steuern optimieren": Receipt,
+  "Passive Einnahmen": Coins,
+  "Altersvorsorge": ShieldCheck,
+  "Kapital sinnvoll investieren": Landmark,
+};
 const STATUS = [
   { id: "angestellt", label: "Angestellt" },
   { id: "beamter", label: "Beamter" },
@@ -1805,22 +1827,22 @@ function Quiz({ antworten, setAntworten, onFertig, onZurueck }) {
 
   const steps = [
     {
-      titel: "Was möchtest du erreichen?",
-      hilfe: "Mehrfachauswahl möglich.",
-      valide: a.ziele.length > 0,
+      titel: FrageTitel(Target, "Was ist dein wichtigstes Ziel?"),
+      valide: !!a.ziel,
+      zeigeButton: false,
       inhalt: (
         <div className="space-y-2.5">
           {ZIELE.map((z) => (
-            <Option key={z} multi selected={a.ziele.includes(z)}
-              onClick={() => set({ ziele: a.ziele.includes(z) ? a.ziele.filter(x => x !== z) : [...a.ziele, z] })}>
-              {z}
+            <Option key={z} selected={a.ziel === z}
+              onClick={() => { set({ ziel: z }); autoWeiter(420); }}>
+              {OptionIcon(ZIELE_ICON[z])}{z}
             </Option>
           ))}
         </div>
       ),
     },
     {
-      titel: "Wie alt bist du?",
+      titel: FrageTitel(Calendar, "Wie alt bist du?"),
       valide: a.alter >= 18 && a.alter <= 50,
       inhalt: (
         <div className="space-y-6">
@@ -1831,7 +1853,7 @@ function Quiz({ antworten, setAntworten, onFertig, onZurueck }) {
       ),
     },
     {
-      titel: "Was ist dein Berufsstatus?",
+      titel: FrageTitel(Briefcase, "Was ist dein Berufsstatus?"),
       valide: !!a.status && (!istSelbststaendig || a.selbststaendigSeit >= 0),
       zeigeButton: istSelbststaendig,
       inhalt: (
@@ -1857,7 +1879,7 @@ function Quiz({ antworten, setAntworten, onFertig, onZurueck }) {
       ),
     },
     {
-      titel: "Wie hoch ist dein jährliches Bruttoeinkommen?",
+      titel: FrageTitel(Wallet, "Wie hoch ist dein jährliches Bruttoeinkommen?"),
       valide: a.brutto >= 20000,
       inhalt: (
         <div className="space-y-6">
@@ -1884,12 +1906,12 @@ function Quiz({ antworten, setAntworten, onFertig, onZurueck }) {
       ),
     },
     {
-      titel: "Interessantes Steuerpotenzial",
+      titel: FrageTitel(Receipt, "Interessantes Steuerpotenzial"),
       hilfe: "Kurzer Zwischenstopp, bevor es mit deinem Eigenkapital weitergeht.",
       valide: true,
       inhalt: (
         <div className="space-y-6">
-          {a.ziele.includes("Steuern optimieren") && <ZielBadge text="Passt zu deinem Ziel: Steuern optimieren" />}
+          {a.ziel === "Steuern optimieren" && <ZielBadge text="Passt zu deinem Ziel: Steuern optimieren" />}
           <Card className="p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="shrink-0 rounded-full flex items-center justify-center"
@@ -1908,7 +1930,7 @@ function Quiz({ antworten, setAntworten, onFertig, onZurueck }) {
               vermieteten Immobilie lässt sich ein Teil deiner Steuerlast über Abschreibungen (AfA)
               und Schuldzinsen reduzieren. Je höher dein Steuersatz, desto stärker wirkt sich das aus.
             </p>
-            {a.ziele.includes("Steuern optimieren") && (
+            {a.ziel === "Steuern optimieren" && (
               <p className="text-sm leading-relaxed mt-3 pt-3" style={{ color: "rgba(255,255,255,0.65)", borderTop: `1px solid ${HAIRLINE}` }}>
                 Konkret heißt das: Die jährliche AfA und die Zinsen aus der Finanzierung mindern dein
                 steuerpflichtiges Einkommen aus der Vermietung – entsteht daraus ein Verlust, wird er
@@ -1983,12 +2005,12 @@ function Quiz({ antworten, setAntworten, onFertig, onZurueck }) {
       ),
     },
     {
-      titel: "Wie viel Eigenkapital hast du zur Verfügung?",
+      titel: FrageTitel(Landmark, "Wie viel Eigenkapital hast du zur Verfügung?"),
       hilfe: "Nur zur Einordnung – du musst nichts davon einsetzen. Auch eine Finanzierung ganz ohne Eigenkapital ist möglich.",
       valide: true,
       inhalt: (
         <div className="space-y-6">
-          {a.ziele.includes("Kapital sinnvoll investieren") && <ZielBadge text="Passt zu deinem Ziel: Kapital sinnvoll investieren" />}
+          {a.ziel === "Kapital sinnvoll investieren" && <ZielBadge text="Passt zu deinem Ziel: Kapital sinnvoll investieren" />}
           <Slider value={a.eigenkapital} min={0} max={200000} step={1000} kurve={2}
             onChange={(v) => set({ eigenkapital: v })} format={(v) => eur(v)} />
           <div className="text-sm" style={{ color: GOLD_SOFT }}>{eigenkapitalHinweis(a.eigenkapital)}</div>
@@ -2000,7 +2022,7 @@ function Quiz({ antworten, setAntworten, onFertig, onZurueck }) {
       ),
     },
     {
-      titel: "Was kannst du monatlich zurücklegen?",
+      titel: FrageTitel(PiggyBank, "Was kannst du monatlich zurücklegen?"),
       hilfe: "Der Betrag, den du dir realistisch leisten könntest – deine Sparrate fließt direkt in deine Auswertung ein.",
       valide: true,
       inhalt: (
@@ -2024,7 +2046,7 @@ function Quiz({ antworten, setAntworten, onFertig, onZurueck }) {
       ),
     },
     {
-      titel: "Besitzt du bereits Immobilien?",
+      titel: FrageTitel(Home, "Besitzt du bereits Immobilien?"),
       valide: a.hatImmobilien !== null,
       zeigeButton: a.hatImmobilien === true,
       inhalt: (
@@ -2044,13 +2066,13 @@ function Quiz({ antworten, setAntworten, onFertig, onZurueck }) {
       ),
     },
     {
-      titel: "Wie viel Immobilienrente möchtest du im Alter haben?",
+      titel: FrageTitel(Palmtree, "Wie viel Immobilienrente möchtest du im Alter haben?"),
       hilfe: "Monatlich, sobald deine Immobilie abbezahlt ist – die Miete gehört dann dir.",
       valide: true,
       inhalt: (
         <div className="space-y-6">
-          {(a.ziele.includes("Altersvorsorge") || a.ziele.includes("Passive Einnahmen")) && (
-            <ZielBadge text={`Passt zu deinem Ziel: ${a.ziele.includes("Altersvorsorge") ? "Altersvorsorge" : "Passive Einnahmen"}`} />
+          {(a.ziel === "Altersvorsorge" || a.ziel === "Passive Einnahmen") && (
+            <ZielBadge text={`Passt zu deinem Ziel: ${a.ziel}`} />
           )}
           <Slider value={a.zielrente} min={0} max={15000} step={100} mitte={3500}
             onChange={(v) => set({ zielrente: v })} format={(v) => eur(v) + " / Monat"} />
@@ -2089,7 +2111,7 @@ function Quiz({ antworten, setAntworten, onFertig, onZurueck }) {
       ),
     },
     {
-      titel: "Wann möchtest du investieren?",
+      titel: FrageTitel(Clock, "Wann möchtest du investieren?"),
       valide: !!a.zeitpunkt,
       zeigeButton: false,
       inhalt: (
@@ -2104,7 +2126,7 @@ function Quiz({ antworten, setAntworten, onFertig, onZurueck }) {
       ),
     },
     {
-      titel: "Wie sicher fühlst du dich aktuell beim Thema Immobilien als Kapitalanlage?",
+      titel: FrageTitel(Gauge, "Wie sicher fühlst du dich aktuell beim Thema Immobilien als Kapitalanlage?"),
       valide: !!a.sicherheitsgefuehl,
       zeigeButton: false,
       inhalt: (
@@ -2189,7 +2211,7 @@ function berechneBereitschaftsScore(a) {
   let score = 45;
   if (a.sparrate > 0) score += 15;
   if (a.brutto > 0) score += 15;
-  if (a.ziele.length > 0) score += 15;
+  if (a.ziel) score += 15;
   if (a.status) score += 10;
   return Math.max(45, Math.min(95, score));
 }
@@ -2808,7 +2830,7 @@ function SparHebelVergleich({ antworten, onWeiter }) {
       <div style={{ animation: "vkIn .6s cubic-bezier(.16,1,.3,1)" }}>
         <Card className="p-7">
           <Eyebrow>Dein Kaufplan im Vergleich</Eyebrow>
-          {antworten.ziele.includes("Vermögen aufbauen") && <ZielBadge text="Passt zu deinem Ziel: Vermögen aufbauen" />}
+          {antworten.ziel === "Vermögen aufbauen" && <ZielBadge text="Passt zu deinem Ziel: Vermögen aufbauen" />}
           <h3 className="text-xl font-semibold mb-2 leading-snug">
             Dein Plan: {daten.anzahl} Immobilie{daten.anzahl === 1 ? "" : "n"}
           </h3>
@@ -4597,7 +4619,7 @@ function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysiere
 
       <div className="mt-7">
         <div className="text-xs uppercase tracking-widest mb-1" style={{ color: "rgba(255,255,255,0.4)" }}>Auswertung aus dem Funnel</div>
-        <CRMFeld label="Ziele" wert={(lead.ziele || []).join(", ") || "–"} />
+        <CRMFeld label="Ziel" wert={lead.ziel || (lead.ziele || []).join(", ") || "–"} />
         <CRMFeld label="Alter" wert={lead.alter ? `${lead.alter} Jahre` : "–"} />
         <CRMFeld label="Berufsstatus" wert={STATUS.find((s) => s.id === lead.status)?.label || lead.status || "–"} />
         <CRMFeld label="Bruttoeinkommen" wert={lead.brutto ? eur(lead.brutto) : "–"} />
@@ -5679,7 +5701,7 @@ function RechnerSeite({ onZurueck, onStart }) {
 /* ================================================================== App */
 const START = {
   vorname: "", nachname: "",
-  ziele: [], alter: 30, status: "", selbststaendigSeit: 3, brutto: 60000,
+  ziel: "", alter: 30, status: "", selbststaendigSeit: 3, brutto: 60000,
   eigenkapital: 30000, eigenkapitalEinsatz: 0, sparrate: 500, zielrente: 5500,
   hatImmobilien: null, immobilien: 0, zeitpunkt: "", sicherheitsgefuehl: "",
 };
