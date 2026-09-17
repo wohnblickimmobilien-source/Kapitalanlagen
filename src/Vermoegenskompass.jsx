@@ -4878,10 +4878,16 @@ function StatistikDashboard({ accessToken }) {
   const LINIEN_FARBEN = { seitenaufruf: GOLD, quiz_gestartet: "#60A5FA", quiz_abgeschlossen: "#818CF8", telefon_abgeschickt: "#34D399", funnel_vollstaendig: "#4ADE80" };
 
   const gesamtBesuche = zaehler.seitenaufruf;
-  const gesamtAnfragen = zaehler.funnel_vollstaendig;
-  const gesamtConversion = gesamtBesuche > 0 ? Math.round((gesamtAnfragen / gesamtBesuche) * 100) : 0;
+  // Ein Lead landet bereits beim Telefon-Gate im CRM, nicht erst nach dem
+  // Terminformular auf der Auswertungsseite. Vorher zählte hier nur
+  // "funnel_vollstaendig", darum stand die Conversion auf 0, obwohl Leads
+  // im CRM lagen. Max() deckt Altdaten mit ab.
+  const gesamtLeads = Math.max(zaehler.telefon_abgeschickt, zaehler.funnel_vollstaendig);
+  // Keine Rundung auf ganze Prozent: bei wenigen Leads und vielen Besuchen
+  // wurde daraus sonst ebenfalls 0 %.
+  const gesamtConversion = gesamtBesuche > 0 ? (gesamtLeads / gesamtBesuche) * 100 : 0;
   const heroBesucheZahl = useZaehler(gesamtBesuche, { dauer: 900 });
-  const heroAnfragenZahl = useZaehler(gesamtAnfragen, { dauer: 900 });
+  const heroAnfragenZahl = useZaehler(gesamtLeads, { dauer: 900 });
   const heroConversionZahl = useZaehler(gesamtConversion, { dauer: 900 });
 
   // Besuche auf der Personenmarken-Hauptseite (steinreich.immo) laufen unter
@@ -4973,15 +4979,17 @@ function StatistikDashboard({ accessToken }) {
           <div className="grid grid-cols-3 gap-3">
             {[
               { label: "Besuche (Analyse)", wert: heroBesucheZahl, farbe: GOLD_SOFT },
-              { label: "Anfragen", wert: heroAnfragenZahl, farbe: "#4ADE80" },
-              { label: "Conversion", wert: heroConversionZahl, farbe: "#60A5FA", suffix: "%" },
+              { label: "Leads", wert: heroAnfragenZahl, farbe: "#4ADE80" },
+              { label: "Conversion", wert: heroConversionZahl, farbe: "#60A5FA", suffix: "%", nachkomma: true },
             ].map((k) => (
               <div key={k.label} className="rounded-2xl p-4 text-center" style={{
                 background: "linear-gradient(160deg, rgba(201,162,39,0.1), rgba(255,255,255,0.02))",
                 border: "1px solid rgba(201,162,39,0.22)",
               }}>
                 <div className="text-2xl font-semibold tabular-nums" style={{ color: k.farbe }}>
-                  {Math.round(k.wert)}{k.suffix || ""}
+                  {k.nachkomma
+                    ? k.wert.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+                    : Math.round(k.wert)}{k.suffix || ""}
                 </div>
                 <div className="text-[11px] mt-1" style={{ color: "rgba(255,255,255,0.4)" }}>{k.label}</div>
               </div>
