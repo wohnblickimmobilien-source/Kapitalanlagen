@@ -5,7 +5,7 @@ import {
 import {
   ArrowRight, ArrowLeft, Check, TrendingUp, Receipt,
   Calculator, ChevronRight, Info, UserCheck, MessageCircle, Clock, Star,
-  Phone, Mail, RefreshCw, Search, Users, X, Plus, Trash2, ShieldCheck
+  Phone, Mail, RefreshCw, Search, Users, X, Plus, Trash2, ShieldCheck, Flame
 } from "lucide-react";
 
 /* ============================================================================
@@ -1667,6 +1667,34 @@ const ZEITPUNKT = [
   { id: "informieren", label: "Zunächst informieren" },
 ];
 
+const SICHERHEIT = [
+  { id: "anfaenger", label: "Blutiger Anfänger – hab noch nie investiert" },
+  { id: "unsicher", label: "Schon mal überlegt, aber noch unsicher" },
+  { id: "grundwissen", label: "Grundwissen vorhanden, will aber begleitet werden" },
+  { id: "sicher", label: "Fühle mich sicher, suche nur noch das passende Objekt" },
+];
+
+/** Grobe Kaufbereitschafts-Einschätzung aus zwei schon vorhandenen
+ * Quiz-Antworten – Sicherheitsgefühl (wie fit fühlt sich die Person selbst)
+ * und Zeitpunkt (wie akut ist der Zeitdruck). Bewusst nur diese zwei,
+ * beide sind direkte Selbstauskünfte der Person, keine Ableitung aus
+ * anderem Verhalten. Liefert 0–6 Punkte plus eine dreistufige Einordnung
+ * fürs schnelle Scannen in der Kartenansicht. */
+function kaufbereitschaft(lead) {
+  const sicherheitPunkte = { sicher: 3, grundwissen: 2, unsicher: 1, anfaenger: 0 };
+  const zeitpunktPunkte = { sofort: 3, "3monate": 2, "6monate": 1, "12monate": 1, informieren: 0 };
+  const hatAntwort = lead.sicherheitsgefuehl || lead.zeitpunkt;
+  if (!hatAntwort) return null; // Quiz zu diesem Teil noch nicht durchlaufen
+  const punkte = (sicherheitPunkte[lead.sicherheitsgefuehl] ?? 1) + (zeitpunktPunkte[lead.zeitpunkt] ?? 1);
+  const stufe = punkte >= 4 ? "heiss" : punkte >= 2 ? "warm" : "kalt";
+  return { punkte, stufe };
+}
+const KAUFBEREITSCHAFT_STUFEN = {
+  heiss: { label: "Heiß", farbe: "#F87171" },
+  warm: { label: "Warm", farbe: GOLD_SOFT },
+  kalt: { label: "Kalt", farbe: "#60A5FA" },
+};
+
 function einkommensHinweis(b) {
   if (b < 42000) return "Solide Basis – der Einstieg ist möglich.";
   if (b < 55000) return "Gute Voraussetzungen für eine Finanzierung.";
@@ -2070,6 +2098,21 @@ function Quiz({ antworten, setAntworten, onFertig, onZurueck }) {
             <Option key={z.id} selected={a.zeitpunkt === z.id}
               onClick={() => { set({ zeitpunkt: z.id }); autoWeiter(420); }}>
               {z.label}
+            </Option>
+          ))}
+        </div>
+      ),
+    },
+    {
+      titel: "Wie sicher fühlst du dich aktuell beim Thema Immobilien als Kapitalanlage?",
+      valide: !!a.sicherheitsgefuehl,
+      zeigeButton: false,
+      inhalt: (
+        <div className="space-y-2.5">
+          {SICHERHEIT.map((s) => (
+            <Option key={s.id} selected={a.sicherheitsgefuehl === s.id}
+              onClick={() => { set({ sicherheitsgefuehl: s.id }); autoWeiter(420); }}>
+              {s.label}
             </Option>
           ))}
         </div>
@@ -4565,6 +4608,7 @@ function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysiere
         } />
         <CRMFeld label="Zielrente" wert={lead.zielrente ? `${eur(lead.zielrente)} / Monat` : "–"} />
         <CRMFeld label="Zeitpunkt" wert={ZEITPUNKT.find((z) => z.id === lead.zeitpunkt)?.label || lead.zeitpunkt || "–"} />
+        <CRMFeld label="Sicherheitsgefühl" wert={SICHERHEIT.find((s) => s.id === lead.sicherheitsgefuehl)?.label || lead.sicherheitsgefuehl || "–"} />
       </div>
 
       <div className="mt-8 pt-6" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
@@ -4942,6 +4986,10 @@ function CRM({ onZurueck, accessToken, onAnalyseAnsehen }) {
       if (!gruppen[status]) gruppen[status] = [];
       gruppen[status].push(lead);
     }
+    // Innerhalb jeder Spalte nach Erstellungsdatum sortieren, neueste zuerst.
+    for (const status of Object.keys(gruppen)) {
+      gruppen[status].sort((a, b) => new Date(b.erstelltAm || 0) - new Date(a.erstelltAm || 0));
+    }
     return gruppen;
   }, [gefiltert]);
 
@@ -5096,31 +5144,41 @@ function CRM({ onZurueck, accessToken, onAnalyseAnsehen }) {
                     <span className="text-xs shrink-0" style={{ color: "rgba(255,255,255,0.35)" }}>{spalten[status].length}</span>
                   </div>
 
-                  <div className="space-y-2 lg:space-y-2.5" style={{ minHeight: 40 }}>
+                  <div className="space-y-2.5 lg:space-y-3" style={{ minHeight: 40 }}>
                     {spalten[status].map((lead) => {
                       const wvTage = lead.wiedervorlageAm
                         ? Math.ceil((new Date(lead.wiedervorlageAm).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000)
                         : null;
                       const letzteNotiz = (lead.notizVerlauf || [])[0];
                       const wirdGezogen = dragLeadId === lead.id;
+                      const kb = kaufbereitschaft(lead);
                       return (
                         <div key={lead.id}
                           onPointerDown={(e) => onKartePointerDown(e, lead.id)}
-                          className="rounded-xl p-3 lg:p-3.5 select-none"
+                          className="rounded-xl p-3.5 lg:p-4 select-none"
                           style={{
                             background: CARD, border: `1px solid ${HAIRLINE}`, touchAction: "none", cursor: "grab",
                             opacity: wirdGezogen ? 0.3 : 1,
                           }}>
-                          <div className="flex items-center gap-1 min-w-0 flex-wrap">
-                            <span className="font-medium text-sm lg:text-base truncate">{lead.vorname} {lead.nachname}</span>
-                            {lead.vollstaendig && <Star size={11} fill={GOLD_SOFT} color={GOLD_SOFT} />}
-                            {lead.selbstauskunft && <Check size={12} strokeWidth={3} color={GREEN} />}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-1 min-w-0 flex-wrap">
+                              <span className="font-medium text-sm lg:text-base truncate">{lead.vorname} {lead.nachname}</span>
+                              {lead.vollstaendig && <Star size={11} fill={GOLD_SOFT} color={GOLD_SOFT} />}
+                              {lead.selbstauskunft && <Check size={12} strokeWidth={3} color={GREEN} />}
+                            </div>
+                            {kb && (
+                              <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                                style={{ background: `${KAUFBEREITSCHAFT_STUFEN[kb.stufe].farbe}22`, color: KAUFBEREITSCHAFT_STUFEN[kb.stufe].farbe }}>
+                                <Flame size={10} fill={KAUFBEREITSCHAFT_STUFEN[kb.stufe].farbe} />
+                                {KAUFBEREITSCHAFT_STUFEN[kb.stufe].label}
+                              </span>
+                            )}
                           </div>
-                          <div className="text-xs lg:text-sm mt-0.5 truncate" style={{ color: "rgba(255,255,255,0.4)" }}>
+                          <div className="text-xs lg:text-sm mt-1 truncate" style={{ color: "rgba(255,255,255,0.4)" }}>
                             {lead.telefon}{lead.zielrente ? ` · ${eur(lead.zielrente)}/Mon.` : ""}
                           </div>
                           {(wvTage !== null || lead.letzterKontaktAm || letzteNotiz) && (
-                            <div className="mt-1.5 pt-1.5" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+                            <div className="mt-2 pt-2" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
                               {wvTage !== null && (
                                 <div className="text-[10px] font-medium" style={{ color: wvTage <= 0 ? "#F87171" : "rgba(255,255,255,0.4)" }}>
                                   {wvTage === 0 ? "Wiedervorlage heute" : wvTage < 0 ? `Überfällig (${Math.abs(wvTage)}T.)` : `In ${wvTage} Tagen`}
@@ -5623,7 +5681,7 @@ const START = {
   vorname: "", nachname: "",
   ziele: [], alter: 30, status: "", selbststaendigSeit: 3, brutto: 60000,
   eigenkapital: 30000, eigenkapitalEinsatz: 0, sparrate: 500, zielrente: 5500,
-  hatImmobilien: null, immobilien: 0, zeitpunkt: "",
+  hatImmobilien: null, immobilien: 0, zeitpunkt: "", sicherheitsgefuehl: "",
 };
 
 /** Dauerhafter, persönlicher Link für einen Lead – lädt seine damals
