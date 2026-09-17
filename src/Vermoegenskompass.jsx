@@ -3287,16 +3287,21 @@ function Ergebnis({ antworten, onNeu, telefonVorausgefuellt, onImpressum, onDate
 
           <div className="mt-7 space-y-3">
             {!formOffen && (
-              <GoldButton full onClick={() => { setFormOffen(true); trackEvent("cta_form_open"); }}>
+              <GoldButton full onClick={() => {
+                setFormOffen(true);
+                trackEvent("cta_form_open");
+                zaehleEreignis("termin_bereit_geklickt");
+                if (leadId) speichereLead({ id: leadId, terminAngefragt: true });
+              }}>
                 Ich bin bereit – Termin vereinbaren <ChevronRight size={18} />
               </GoldButton>
             )}
-            <a href={waLink("Hallo Philipp, ich hab noch ein paar Fragen, bevor ich mich festlege.")}
+            <a href={waLink("Hallo Philipp, ich habe gerade meine Auswertung erhalten und hätte noch ein paar Fragen dazu.")}
               target="_blank" rel="noopener noreferrer"
               onClick={() => trackEvent("whatsapp_click", { intent: "fragen" })}
               className="flex items-center justify-center gap-2 rounded-full px-7 py-4 text-base font-medium transition-colors"
               style={{ background: "rgba(52,211,153,0.10)", border: "1px solid rgba(52,211,153,0.35)", color: GREEN }}>
-              <MessageCircle size={18} /> Ich will erstmal mehr verstehen
+              <MessageCircle size={18} /> Schreib mir auf WhatsApp
             </a>
           </div>
 
@@ -4346,6 +4351,12 @@ function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysiere
       <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
         Eingegangen am {new Date(lead.erstelltAm).toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" })}
       </div>
+      {lead.terminAngefragt && (
+        <div className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-full mt-2.5"
+          style={{ background: GOLD, color: "#15130B" }}>
+          <Phone size={12} strokeWidth={3} /> Hat direkt einen Termin angefragt
+        </div>
+      )}
 
       <div className="flex gap-2.5 mt-5">
         {lead.telefon && (
@@ -5182,6 +5193,12 @@ function CRM({ onZurueck, accessToken, onAnalyseAnsehen }) {
                             background: CARD, border: `1px solid ${HAIRLINE}`, touchAction: "none", cursor: "grab",
                             opacity: wirdGezogen ? 0.3 : 1,
                           }}>
+                          {lead.terminAngefragt && (
+                            <div className="flex items-center gap-1.5 text-[10px] font-semibold px-2 py-1 rounded-lg mb-2"
+                              style={{ background: GOLD, color: "#15130B" }}>
+                              <Phone size={10} strokeWidth={3} /> Termin angefragt
+                            </div>
+                          )}
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-1 min-w-0 flex-wrap">
                               <span className="font-medium text-sm lg:text-base truncate">{lead.vorname} {lead.nachname}</span>
