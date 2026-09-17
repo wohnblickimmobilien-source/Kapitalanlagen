@@ -933,6 +933,81 @@ function GlobalStyles() {
 }
 
 /**
+ * Meldet einmalig, sobald das Element in den sichtbaren Bereich gescrollt
+ * wurde. Basis für Animationen, die erst beim Hinscrollen loslaufen sollen
+ * statt schon beim Laden der Seite fertig zu sein.
+ */
+function useImBlick({ rootMargin = "0px 0px -18% 0px" } = {}) {
+  const ref = useRef(null);
+  const [imBlick, setImBlick] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") { setImBlick(true); return; }
+    const io = new IntersectionObserver(([eintrag]) => {
+      if (eintrag.isIntersecting) { setImBlick(true); io.disconnect(); }
+    }, { rootMargin });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [rootMargin]);
+  return [ref, imBlick];
+}
+
+/**
+ * Scrollposition, auf einen Frame pro Bild gedrosselt. Bewusst nur innerhalb
+ * kleiner Komponenten benutzen, sonst rendert der halbe Funnel bei jedem Pixel neu.
+ */
+function useScrollY() {
+  const [y, setY] = useState(0);
+  useEffect(() => {
+    let raf = null;
+    const beiScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => { raf = null; setY(window.scrollY || 0); });
+    };
+    window.addEventListener("scroll", beiScroll, { passive: true });
+    beiScroll();
+    return () => { window.removeEventListener("scroll", beiScroll); if (raf) cancelAnimationFrame(raf); };
+  }, []);
+  return y;
+}
+
+/**
+ * Goldener Schimmer im Hintergrund. Driftet beim Scrollen leicht mit, das
+ * erzeugt Tiefe. Eigene Komponente, damit nur sie neu rendert.
+ *
+ * Die Fläche reicht bewusst 300px über den Viewport hinaus. Sonst wandert
+ * beim Verschieben die Oberkante des Elements ins Bild und man sieht eine
+ * harte Linie quer über die Seite.
+ */
+function AmbientGlow() {
+  const y = useScrollY();
+  const versatz = Math.min(y * 0.14, 140);
+  return (
+    <div aria-hidden className="fixed inset-x-0 pointer-events-none" style={{
+      top: -300, bottom: -300,
+      background: `radial-gradient(1000px 600px at 50% 220px, rgba(201,162,39,0.10), transparent 70%)`,
+      transform: `translate3d(0, ${versatz}px, 0)`,
+      willChange: "transform",
+    }} />
+  );
+}
+
+/**
+ * Weicher Übergang zur Statusleiste des iPhones. Ganz oben exakt INK, also
+ * dieselbe Farbe wie das theme-color in der index.html, nach unten transparent.
+ * Ohne diesen Verlauf setzt der goldene Schimmer direkt an der Statusleiste an
+ * und man sieht eine harte schwarze Kante.
+ */
+function StatusbarVerlauf() {
+  return (
+    <div aria-hidden className="fixed inset-x-0 top-0 pointer-events-none" style={{
+      height: "calc(120px + env(safe-area-inset-top))",
+      background: `linear-gradient(to bottom, ${INK} 0%, rgba(10,10,11,0.86) 38%, rgba(10,10,11,0) 100%)`,
+    }} />
+  );
+}
+
+/**
  * Zahl läuft dem Zielwert exponentiell hinterher (rAF, kein Re-Render-Sturm).
  * Erzeugt beim Ziehen das weiche Hochzählen statt harter Sprünge.
  */
@@ -1123,7 +1198,7 @@ function Stat({ label, value, tone = "neutral", sub }) {
  * Oben auf der Seite ergibt das eine choreografierte Abfolge,
  * weiter unten belohnt es das Scrollen.
  */
-function Reveal({ delay = 0, children }) {
+function Reveal({ delay = 0, children, className = "" }) {
   const ref = useRef(null);
   const [sichtbar, setSichtbar] = useState(false);
 
@@ -1132,14 +1207,14 @@ function Reveal({ delay = 0, children }) {
     if (!el || typeof IntersectionObserver === "undefined") { setSichtbar(true); return; }
     const io = new IntersectionObserver(
       ([eintrag]) => { if (eintrag.isIntersecting) { setSichtbar(true); io.disconnect(); } },
-      { rootMargin: "0px 0px -60px 0px" }
+      { rootMargin: "0px 0px -12% 0px" }
     );
     io.observe(el);
     return () => io.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{
+    <div ref={ref} className={className} style={{
       opacity: sichtbar ? 1 : 0,
       transform: sichtbar ? "none" : "translateY(24px) scale(0.985)",
       transformOrigin: "center top",
@@ -1452,13 +1527,22 @@ function DreiWegeVergleich({ onRechner }) {
   // Unterschied gegen die stärkere Alternative (ETF), nicht gegen Tagesgeld
   // – das ist der ehrlichere, konservativere Vergleich.
 
+  // Die Säulen wachsen und die Zahlen zählen erst hoch, wenn die Karte
+  // wirklich ins Bild kommt. Vorher lief das nach festem Timer ab mit dem
+  // Ergebnis, dass auf dem Handy alles längst fertig war, bevor man
+  // hingescrollt hatte.
+  const [kartenRef, imBlick] = useImBlick();
   const [sichtbar, setSichtbar] = useState(false);
-  useEffect(() => { const id = setTimeout(() => setSichtbar(true), 700); return () => clearTimeout(id); }, []);
+  useEffect(() => {
+    if (!imBlick) return;
+    const id = setTimeout(() => setSichtbar(true), 120);
+    return () => clearTimeout(id);
+  }, [imBlick]);
 
-  const tagesgeldZahl = useZaehler(tagesgeld, { delay: 800, aktiv: sichtbar });
-  const aktienZahl = useZaehler(aktien, { delay: 950, aktiv: sichtbar });
-  const immoZahl = useZaehler(immo, { delay: 1100, aktiv: sichtbar });
-  const deltaZahl = useZaehler(immo - aktien, { delay: 1500, aktiv: sichtbar });
+  const tagesgeldZahl = useZaehler(tagesgeld, { delay: 220, aktiv: sichtbar });
+  const aktienZahl = useZaehler(aktien, { delay: 380, aktiv: sichtbar });
+  const immoZahl = useZaehler(immo, { delay: 540, aktiv: sichtbar });
+  const deltaZahl = useZaehler(immo - aktien, { delay: 950, aktiv: sichtbar });
 
   const max = Math.max(immo, tagesgeld, aktien, 1);
   const saeulen = [
@@ -1470,7 +1554,7 @@ function DreiWegeVergleich({ onRechner }) {
       farbe: "rgba(255,255,255,0.16)",
       rand: "rgba(255,255,255,0.22)",
       textFarbe: "rgba(255,255,255,0.75)",
-      delay: 800,
+      delay: 120,
     },
     {
       label: V.aktienLabel,
@@ -1480,7 +1564,7 @@ function DreiWegeVergleich({ onRechner }) {
       farbe: "rgba(91,140,201,0.45)",
       rand: "#5B8CC9",
       textFarbe: "#8FB4E3",
-      delay: 950,
+      delay: 280,
     },
     {
       label: "Immobilie",
@@ -1490,11 +1574,12 @@ function DreiWegeVergleich({ onRechner }) {
       farbe: `linear-gradient(180deg, ${GOLD_SOFT}, ${GOLD})`,
       rand: "transparent",
       textFarbe: GOLD_SOFT,
-      delay: 1100,
+      delay: 440,
     },
   ];
 
   return (
+    <div ref={kartenRef}>
     <Card className="p-7 md:p-8 xl:p-7">
       <Eyebrow>Beispielrechnung</Eyebrow>
       <h2 className="text-2xl md:text-3xl xl:text-2xl font-semibold tracking-tight leading-snug">
@@ -1543,7 +1628,7 @@ function DreiWegeVergleich({ onRechner }) {
         <span className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium tabular-nums"
           style={{
             background: "rgba(52,211,153,0.10)", border: "1px solid rgba(52,211,153,0.32)", color: GREEN,
-            opacity: sichtbar ? 1 : 0, transition: "opacity .8s ease 1.5s",
+            opacity: sichtbar ? 1 : 0, transition: "opacity .8s ease 1s",
           }}>
           <TrendingUp size={14} />
           Unterschied zum {V.aktienLabel}: {eur(Math.round(deltaZahl))}
@@ -1556,6 +1641,7 @@ function DreiWegeVergleich({ onRechner }) {
         <Calculator size={13} /> Kalkulation im Detail ansehen
       </button>
     </Card>
+    </div>
   );
 }
 
@@ -1616,21 +1702,25 @@ function Landing({ onStart, onImpressum, onDatenschutz, onCrm, onRechner }) {
             neben dem Text, statt darunter viel Leerraum entstehen zu lassen.
             Unterhalb von 1280px (Handy, Tablet, kleinere Laptop-Fenster)
             bleibt exakt die mobile Reihenfolge, gestapelt. */}
-        <div className="mt-8 xl:mt-0 xl:max-w-lg xl:ml-auto" style={rise(340)}>
-          <DreiWegeVergleich onRechner={onRechner} />
-        </div>
+        <Reveal className="mt-8 xl:mt-0" delay={60}>
+          <div className="xl:max-w-lg xl:ml-auto">
+            <DreiWegeVergleich onRechner={onRechner} />
+          </div>
+        </Reveal>
       </div>
 
-      <p className="mt-8 text-xs leading-relaxed max-w-2xl xl:hidden" style={{ color: "rgba(255,255,255,0.3)", ...rise(420) }}>
-        Alle Darstellungen sind überschlägige Beispielrechnungen auf Basis allgemeiner Annahmen.
-        Sie ersetzen keine Steuer-, Rechts- oder Anlageberatung.
-      </p>
+      <Reveal className="mt-8 xl:hidden">
+        <p className="text-xs leading-relaxed max-w-2xl" style={{ color: "rgba(255,255,255,0.3)" }}>
+          Alle Darstellungen sind überschlägige Beispielrechnungen auf Basis allgemeiner Annahmen.
+          Sie ersetzen keine Steuer-, Rechts- oder Anlageberatung.
+        </p>
+      </Reveal>
 
       {/* Bewertungskarten – nur im DOM, wenn echte Einträge vorhanden sind */}
       {CONFIG.bewertungen.length > 0 && (
-        <div className="mt-8">
+        <Reveal className="mt-8">
           <Bewertungskarten />
-        </div>
+        </Reveal>
       )}
 
       <div className="mt-10 flex items-center gap-4">
@@ -5817,10 +5907,10 @@ export default function Vermoegenskompass() {
     }}>
       <GlobalStyles />
       {phase !== "crm" && <ConsentBanner />}
-      {/* Ambient Glow */}
-      <div className="fixed inset-0 pointer-events-none" style={{
-        background: `radial-gradient(1000px 600px at 50% -10%, rgba(201,162,39,0.10), transparent 70%)`,
-      }} />
+      {/* Ambient Glow, driftet beim Scrollen leicht mit */}
+      <AmbientGlow />
+      {/* Muss nach dem Glow kommen: kaschiert die Kante zur iOS-Statusleiste */}
+      <StatusbarVerlauf />
       {/* einmaliges Aufglühen, wenn der Sparraten-Vergleich erscheint – das ist jetzt der echte Reveal-Moment */}
       {phase === "sparvergleich" && (
         <div key="glanz" className="fixed inset-0 pointer-events-none" style={{

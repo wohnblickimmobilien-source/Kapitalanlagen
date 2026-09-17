@@ -727,6 +727,21 @@ function useScrollY() {
   return y;
 }
 
+/**
+ * Weicher Übergang zur Statusleiste des iPhones. Ganz oben exakt INK, also
+ * dieselbe Farbe wie das theme-color in der index.html, nach unten transparent.
+ * Ohne diesen Verlauf setzt der Hintergrundschimmer direkt an der Statusleiste
+ * an und man sieht oben eine harte schwarze Kante.
+ */
+function StatusbarVerlauf() {
+  return (
+    <div aria-hidden className="fixed inset-x-0 top-0 z-0 pointer-events-none" style={{
+      height: "calc(120px + env(safe-area-inset-top))",
+      background: `linear-gradient(to bottom, ${INK} 0%, rgba(10,10,11,0.86) 38%, rgba(10,10,11,0) 100%)`,
+    }} />
+  );
+}
+
 /** Seitenweiter, fest positionierter Hintergrund mit mehreren langsam
  * driftenden Farbflächen (Gold + Smaragdgrün als zweiter Akzent) – bleibt
  * beim Scrollen stehen, sodass die ganze Seite Atmosphäre hat statt nur
@@ -784,6 +799,7 @@ export default function PersonalLanding() {
         }
       `}</style>
       <AmbientBackground />
+      <StatusbarVerlauf />
       <ConsentBanner />
       <div className="relative z-10 min-h-screen px-5 pt-6 pb-20 max-w-2xl mx-auto">
         <Hero t={t} />
