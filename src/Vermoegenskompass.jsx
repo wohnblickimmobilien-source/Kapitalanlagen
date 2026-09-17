@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useDeferredValue } from "react";
 import {
-  XAxis, YAxis, ResponsiveContainer, ComposedChart, Area, Line, BarChart, Bar, CartesianGrid, Legend
+  XAxis, YAxis, ResponsiveContainer, ComposedChart, Area, Line, BarChart, Bar, CartesianGrid, Legend, Tooltip
 } from "recharts";
 import {
   ArrowRight, ArrowLeft, Check, TrendingUp, Receipt,
@@ -4633,11 +4633,11 @@ function CRMLogin({ onErfolg }) {
 }
 
 const FUNNEL_SCHRITTE = [
-  { key: "seitenaufruf", label: "Seitenaufruf" },
-  { key: "quiz_gestartet", label: "Quiz gestartet" },
-  { key: "quiz_abgeschlossen", label: "Quiz abgeschlossen" },
-  { key: "telefon_abgeschickt", label: "Telefon-Gate ausgefüllt" },
-  { key: "funnel_vollstaendig", label: "Anfrage vollständig" },
+  { key: "seitenaufruf", label: "Seitenaufruf", icon: Users },
+  { key: "quiz_gestartet", label: "Quiz gestartet", icon: Calculator },
+  { key: "quiz_abgeschlossen", label: "Quiz abgeschlossen", icon: Check },
+  { key: "telefon_abgeschickt", label: "Telefon-Gate ausgefüllt", icon: Phone },
+  { key: "funnel_vollstaendig", label: "Anfrage vollständig", icon: Star },
 ];
 
 /** Traffic- und Funnel-Statistik – liest aus der eigenen, schlanken
@@ -4664,9 +4664,10 @@ function StatistikDashboard({ accessToken }) {
 
   useEffect(() => { laden(); }, [zeitraum]);
 
-  if (ereignisse === null) {
-    return <div className="text-center py-16 text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>Lädt …</div>;
-  }
+  // Wichtig: Alle Hooks (auch useZaehler weiter unten) müssen bei jedem
+  // Render in derselben Reihenfolge laufen – deshalb rechnen wir hier mit
+  // "ereignisse || []" weiter, statt vor den Hooks schon früh zurückzukehren.
+  const geladen = ereignisse || [];
 
   const zaehleFunnel = (liste) => {
     const z = {};
@@ -4675,16 +4676,16 @@ function StatistikDashboard({ accessToken }) {
     return z;
   };
 
-  const zaehler = zaehleFunnel(ereignisse);
+  const zaehler = zaehleFunnel(geladen);
   const maxWert = Math.max(1, ...FUNNEL_SCHRITTE.map((s) => zaehler[s.key]));
 
-  const tagEreignisse = ereignisse.filter((e) => e.created_at.slice(0, 10) === ausgewaehlterTag);
+  const tagEreignisse = geladen.filter((e) => e.created_at.slice(0, 10) === ausgewaehlterTag);
   const zaehlerTag = zaehleFunnel(tagEreignisse);
   const maxWertTag = Math.max(1, ...FUNNEL_SCHRITTE.map((s) => zaehlerTag[s.key]));
 
   // Tagesreihe mit allen Funnel-Schritten gleichzeitig, für das Kurven-Diagramm.
   const tage = {};
-  for (const e of ereignisse) {
+  for (const e of geladen) {
     const tag = e.created_at.slice(0, 10);
     if (!tage[tag]) { tage[tag] = {}; for (const s of FUNNEL_SCHRITTE) tage[tag][s.key] = 0; }
     if (tage[tag][e.event_name] !== undefined) tage[tag][e.event_name]++;
@@ -4695,32 +4696,64 @@ function StatistikDashboard({ accessToken }) {
   const fruehesterTag = Object.keys(tage).sort()[0] || heute;
   const LINIEN_FARBEN = { seitenaufruf: GOLD, quiz_gestartet: "#60A5FA", quiz_abgeschlossen: "#818CF8", telefon_abgeschickt: "#34D399", funnel_vollstaendig: "#4ADE80" };
 
+  const gesamtBesuche = zaehler.seitenaufruf;
+  const gesamtAnfragen = zaehler.funnel_vollstaendig;
+  const gesamtConversion = gesamtBesuche > 0 ? Math.round((gesamtAnfragen / gesamtBesuche) * 100) : 0;
+  const heroBesucheZahl = useZaehler(gesamtBesuche, { dauer: 900 });
+  const heroAnfragenZahl = useZaehler(gesamtAnfragen, { dauer: 900 });
+  const heroConversionZahl = useZaehler(gesamtConversion, { dauer: 900 });
+
+  const StatBalken = ({ label, icon: Icon, wert, quote, maxWertObj }) => (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-2">
+          <div className="rounded-lg flex items-center justify-center shrink-0" style={{ width: 22, height: 22, background: "rgba(201,162,39,0.12)" }}>
+            <Icon size={12} color={GOLD_SOFT} />
+          </div>
+          <span className="text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>{label}</span>
+        </div>
+        <span className="text-sm font-semibold tabular-nums" style={{ color: wert > 0 ? GOLD_SOFT : "rgba(255,255,255,0.25)" }}>
+          {wert}
+          {quote !== null && <span className="text-xs font-normal ml-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>({quote}%)</span>}
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+        {wert > 0 && (
+          <div className="h-full rounded-full" style={{ width: `${Math.max(3, (wert / maxWertObj) * 100)}%`, background: `linear-gradient(90deg, ${GOLD}, ${GOLD_SOFT})` }} />
+        )}
+      </div>
+    </div>
+  );
+
   const FunnelBlock = ({ titel, zaehlerObj, maxWertObj }) => (
     <div className="rounded-2xl p-5" style={{ background: CARD, border: `1px solid ${HAIRLINE}` }}>
       <div className="text-xs uppercase tracking-widest mb-4" style={{ color: "rgba(255,255,255,0.4)" }}>{titel}</div>
-      <div className="space-y-3.5">
+      <div className="space-y-4">
         {FUNNEL_SCHRITTE.map((s, i) => {
           const wert = zaehlerObj[s.key];
           const vorher = i > 0 ? zaehlerObj[FUNNEL_SCHRITTE[i - 1].key] : null;
           const quote = vorher ? Math.round((wert / Math.max(1, vorher)) * 100) : null;
-          return (
-            <div key={s.key}>
-              <div className="flex items-baseline justify-between mb-1">
-                <span className="text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>{s.label}</span>
-                <span className="text-sm font-semibold tabular-nums" style={{ color: GOLD_SOFT }}>
-                  {wert}
-                  {quote !== null && <span className="text-xs font-normal ml-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>({quote}%)</span>}
-                </span>
-              </div>
-              <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
-                <div className="h-full rounded-full" style={{ width: `${Math.max(3, (wert / maxWertObj) * 100)}%`, background: `linear-gradient(90deg, ${GOLD}, ${GOLD_SOFT})` }} />
-              </div>
-            </div>
-          );
+          return <StatBalken key={s.key} label={s.label} icon={s.icon} wert={wert} quote={quote} maxWertObj={maxWertObj} />;
         })}
       </div>
     </div>
   );
+
+  const ChartTooltip = ({ active, payload, label }) => {
+    if (!active || !payload || !payload.length) return null;
+    return (
+      <div className="rounded-xl px-3.5 py-3" style={{ background: "#17140B", border: `1px solid rgba(201,162,39,0.35)`, boxShadow: "0 12px 32px rgba(0,0,0,0.5)" }}>
+        <div className="text-xs mb-1.5" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</div>
+        {payload.filter((p) => p.value > 0 || p.dataKey === "seitenaufruf").map((p) => (
+          <div key={p.dataKey} className="flex items-center gap-2 text-xs py-0.5">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: p.stroke }} />
+            <span style={{ color: "rgba(255,255,255,0.6)" }}>{FUNNEL_SCHRITTE.find((s) => s.key === p.dataKey)?.label}</span>
+            <span className="font-semibold ml-auto" style={{ color: "#fff" }}>{p.value}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -4736,34 +4769,66 @@ function StatistikDashboard({ accessToken }) {
             {t} Tage
           </button>
         ))}
-        <button onClick={laden} className="ml-auto p-1.5 rounded-full" style={{ color: "rgba(255,255,255,0.4)" }} aria-label="Aktualisieren">
+        <button onClick={laden} className="ml-auto p-1.5 rounded-full transition-colors" style={{ color: "rgba(255,255,255,0.4)" }} aria-label="Aktualisieren">
           <RefreshCw size={14} />
         </button>
       </div>
 
-      {ereignisse.length === 0 ? (
+      {ereignisse === null ? (
+        <div className="flex items-center justify-center py-24">
+          <div style={{ width: 22, height: 22, border: `2px solid ${HAIRLINE}`, borderTopColor: GOLD, borderRadius: "50%", animation: "vkSpin 0.8s linear infinite" }} />
+        </div>
+      ) : geladen.length === 0 ? (
         <div className="text-center py-16 text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
           Noch keine Daten in diesem Zeitraum.
         </div>
       ) : (
         <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: "Besuche", wert: heroBesucheZahl, farbe: GOLD_SOFT },
+              { label: "Anfragen", wert: heroAnfragenZahl, farbe: "#4ADE80" },
+              { label: "Conversion", wert: heroConversionZahl, farbe: "#60A5FA", suffix: "%" },
+            ].map((k) => (
+              <div key={k.label} className="rounded-2xl p-4 text-center" style={{
+                background: "linear-gradient(160deg, rgba(201,162,39,0.1), rgba(255,255,255,0.02))",
+                border: "1px solid rgba(201,162,39,0.22)",
+              }}>
+                <div className="text-2xl font-semibold tabular-nums" style={{ color: k.farbe }}>
+                  {Math.round(k.wert)}{k.suffix || ""}
+                </div>
+                <div className="text-[11px] mt-1" style={{ color: "rgba(255,255,255,0.4)" }}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+
           <FunnelBlock titel={`Funnel · letzte ${zeitraum} Tage`} zaehlerObj={zaehler} maxWertObj={maxWert} />
 
           <div className="rounded-2xl p-5" style={{ background: CARD, border: `1px solid ${HAIRLINE}` }}>
             <div className="text-xs uppercase tracking-widest mb-4" style={{ color: "rgba(255,255,255,0.4)" }}>Verlauf über die Zeit</div>
-            <div style={{ height: 200 }}>
+            <div style={{ height: 220 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={tagesReihe} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.06)" />
+                  <defs>
+                    <linearGradient id="statistik-flaeche" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={GOLD} stopOpacity={0.28} />
+                      <stop offset="100%" stopColor={GOLD} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.05)" />
                   <XAxis dataKey="tag" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.35)" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "rgba(255,255,255,0.35)" }} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <Legend
-                    formatter={(value) => FUNNEL_SCHRITTE.find((s) => s.key === value)?.label || value}
-                    wrapperStyle={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}
-                  />
+                  <YAxis tick={{ fontSize: 10, fill: "rgba(255,255,255,0.35)" }} axisLine={false} tickLine={false} allowDecimals={false} width={28} />
+                  <Tooltip content={<ChartTooltip />} cursor={{ stroke: "rgba(201,162,39,0.25)", strokeWidth: 1 }} />
+                  <Area type="monotone" dataKey="seitenaufruf" stroke="none" fill="url(#statistik-flaeche)" />
                   {FUNNEL_SCHRITTE.map((s) => (
-                    <Line key={s.key} type="monotone" dataKey={s.key} stroke={LINIEN_FARBEN[s.key]} strokeWidth={2} dot={false} />
+                    <Line key={s.key} type="monotone" dataKey={s.key} stroke={LINIEN_FARBEN[s.key]}
+                      strokeWidth={s.key === "seitenaufruf" ? 2.5 : 1.75} dot={false} />
                   ))}
+                  <Legend
+                    formatter={(value) => <span style={{ color: "rgba(255,255,255,0.5)" }}>{FUNNEL_SCHRITTE.find((s) => s.key === value)?.label || value}</span>}
+                    wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
+                    iconSize={8}
+                  />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -4782,25 +4847,12 @@ function StatistikDashboard({ accessToken }) {
                 Keine Besuche an diesem Tag {zeitraum < 90 && fruehesterTag > ausgewaehlterTag ? "(oder außerhalb des geladenen Zeitraums – oben ggf. auf 90 Tage stellen)" : ""}.
               </div>
             ) : (
-              <div className="space-y-3.5">
+              <div className="space-y-4">
                 {FUNNEL_SCHRITTE.map((s, i) => {
                   const wert = zaehlerTag[s.key];
                   const vorher = i > 0 ? zaehlerTag[FUNNEL_SCHRITTE[i - 1].key] : null;
                   const quote = vorher ? Math.round((wert / Math.max(1, vorher)) * 100) : null;
-                  return (
-                    <div key={s.key}>
-                      <div className="flex items-baseline justify-between mb-1">
-                        <span className="text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>{s.label}</span>
-                        <span className="text-sm font-semibold tabular-nums" style={{ color: GOLD_SOFT }}>
-                          {wert}
-                          {quote !== null && <span className="text-xs font-normal ml-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>({quote}%)</span>}
-                        </span>
-                      </div>
-                      <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
-                        <div className="h-full rounded-full" style={{ width: `${Math.max(3, (wert / maxWertTag) * 100)}%`, background: `linear-gradient(90deg, ${GOLD}, ${GOLD_SOFT})` }} />
-                      </div>
-                    </div>
-                  );
+                  return <StatBalken key={s.key} label={s.label} icon={s.icon} wert={wert} quote={quote} maxWertObj={maxWertTag} />;
                 })}
               </div>
             )}
