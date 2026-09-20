@@ -4817,8 +4817,10 @@ const FUNNEL_SCHRITTE = [
   { key: "seitenaufruf", label: "Seitenaufruf", icon: Users },
   { key: "quiz_gestartet", label: "Quiz gestartet", icon: Calculator },
   { key: "quiz_abgeschlossen", label: "Quiz abgeschlossen", icon: Check },
-  { key: "telefon_abgeschickt", label: "Telefon-Gate ausgefüllt", icon: Phone },
-  { key: "funnel_vollstaendig", label: "Anfrage vollständig", icon: Star },
+  // Telefon-Gate und vollständige Anfrage sind derselbe Mensch und derselbe
+  // Lead. Sie werden deshalb zu einer Stufe zusammengefasst: sobald ein
+  // Datensatz im CRM liegt, zählt er.
+  { key: "lead", label: "Lead", icon: Star },
 ];
 
 /** Traffic- und Funnel-Statistik – liest aus der eigenen, schlanken
@@ -4853,7 +4855,15 @@ function StatistikDashboard({ accessToken }) {
   const zaehleFunnel = (liste) => {
     const z = {};
     for (const s of FUNNEL_SCHRITTE) z[s.key] = 0;
-    for (const e of liste) if (z[e.event_name] !== undefined) z[e.event_name]++;
+    // "telefon_abgeschickt" und "funnel_vollstaendig" feuern beide für
+    // dieselbe Person. Max() statt Summe, damit ein Lead nicht doppelt zählt.
+    let telefon = 0, vollstaendig = 0;
+    for (const e of liste) {
+      if (e.event_name === "telefon_abgeschickt") telefon++;
+      else if (e.event_name === "funnel_vollstaendig") vollstaendig++;
+      else if (z[e.event_name] !== undefined) z[e.event_name]++;
+    }
+    z.lead = Math.max(telefon, vollstaendig);
     return z;
   };
 
@@ -4865,24 +4875,23 @@ function StatistikDashboard({ accessToken }) {
   const maxWertTag = Math.max(1, ...FUNNEL_SCHRITTE.map((s) => zaehlerTag[s.key]));
 
   // Tagesreihe mit allen Funnel-Schritten gleichzeitig, für das Kurven-Diagramm.
+  // Nach Tag gruppieren und pro Tag dieselbe Zählung anwenden, damit die
+  // Kurve exakt zu den Balken darüber passt.
   const tage = {};
   for (const e of geladen) {
     const tag = e.created_at.slice(0, 10);
-    if (!tage[tag]) { tage[tag] = {}; for (const s of FUNNEL_SCHRITTE) tage[tag][s.key] = 0; }
-    if (tage[tag][e.event_name] !== undefined) tage[tag][e.event_name]++;
+    (tage[tag] = tage[tag] || []).push(e);
   }
   const tagesReihe = Object.entries(tage).sort(([a], [b]) => a.localeCompare(b))
-    .map(([tag, werte]) => ({ tag: tag.slice(5), ...werte }));
+    .map(([tag, liste]) => ({ tag: tag.slice(5), ...zaehleFunnel(liste) }));
 
   const fruehesterTag = Object.keys(tage).sort()[0] || heute;
-  const LINIEN_FARBEN = { seitenaufruf: GOLD, quiz_gestartet: "#60A5FA", quiz_abgeschlossen: "#818CF8", telefon_abgeschickt: "#34D399", funnel_vollstaendig: "#4ADE80" };
+  const LINIEN_FARBEN = { seitenaufruf: GOLD, quiz_gestartet: "#60A5FA", quiz_abgeschlossen: "#818CF8", lead: "#4ADE80" };
 
   const gesamtBesuche = zaehler.seitenaufruf;
   // Ein Lead landet bereits beim Telefon-Gate im CRM, nicht erst nach dem
-  // Terminformular auf der Auswertungsseite. Vorher zählte hier nur
-  // "funnel_vollstaendig", darum stand die Conversion auf 0, obwohl Leads
-  // im CRM lagen. Max() deckt Altdaten mit ab.
-  const gesamtLeads = Math.max(zaehler.telefon_abgeschickt, zaehler.funnel_vollstaendig);
+  // Terminformular auf der Auswertungsseite.
+  const gesamtLeads = zaehler.lead;
   // Keine Rundung auf ganze Prozent: bei wenigen Leads und vielen Besuchen
   // wurde daraus sonst ebenfalls 0 %.
   const gesamtConversion = gesamtBesuche > 0 ? (gesamtLeads / gesamtBesuche) * 100 : 0;
