@@ -98,9 +98,23 @@ async function zaehleEreignis(name) {
   } catch (e) { /* Statistik ist nice-to-have, kein kritischer Pfad */ }
 }
 
-/** Baut den wa.me-Link mit vorausgefüllter Nachricht aus CONFIG.kontakt. */
+/** Baut den wa.me-Link mit vorausgefüllter Nachricht aus CONFIG.kontakt.
+ * Zeigt auf die EIGENE Nummer – richtig für Buttons auf der Website, über die
+ * ein Interessent dich anschreibt. */
 function waLink(text = CONFIG.kontakt.whatsappText) {
   return `https://wa.me/${CONFIG.kontakt.whatsappNummer}?text=${encodeURIComponent(text)}`;
+}
+
+/** Baut den wa.me-Link an EINEN LEAD, also für den umgekehrten Weg im CRM.
+ * Ohne das öffnet sich ein Chat mit der eigenen Nummer. Normalisiert die vom
+ * Lead eingegebene Nummer auf das internationale Format ohne Plus und ohne
+ * Leerzeichen, wie wa.me es verlangt. */
+function waLinkAn(telefon, text) {
+  let n = String(telefon || "").replace(/\D/g, "");
+  if (n.startsWith("00")) n = n.slice(2);
+  else if (n.startsWith("0")) n = `49${n.slice(1)}`;
+  else if (!n.startsWith("49")) n = `49${n}`;
+  return `https://wa.me/${n}?text=${encodeURIComponent(text)}`;
 }
 
 /**
@@ -157,7 +171,10 @@ function leadZuZeile(lead) {
 function zeileZuLead(zeile) {
   const lead = {};
   for (const [feld, spalte] of Object.entries(LEAD_SPALTEN)) lead[feld] = zeile[spalte];
-  return { ...lead, ...(zeile.antworten || {}) };
+  const roh = { ...lead, ...(zeile.antworten || {}) };
+  // Stufen, die es in der Pipeline nicht mehr gibt, auf die heutige Benennung
+  // übersetzen (siehe CRM_STATUS_ALT).
+  return { ...roh, crmStatus: normalisiereStatus(roh.crmStatus) };
 }
 
 // Als Funktion statt festem Objekt, damit CONFIG zum Zeitpunkt des Aufrufs
@@ -293,10 +310,10 @@ function beispielLead() {
     eigenkapital: 25000, sparrate: 650,
     hatImmobilien: false, immobilien: 0,
     zielrente: 5500, zeitpunkt: "6monate",
-    crmStatus: "strategiegespraech",
+    crmStatus: "telefonat",
     notizVerlauf: [
       { id: "b2", text: "Objekt in Aussicht gestellt, wartet noch auf Rückmeldung von seiner Bank zur Finanzierungsbestätigung.", datum: new Date(jetzt - 1 * 86400000).toISOString() },
-      { id: "b1", text: "Strategiegespräch geführt – sehr interessiert, sucht Kapitalanlage mit Fokus auf Steuervorteil. Beispiel-Lead zum Testen, kann jederzeit gelöscht werden.", datum: new Date(jetzt - 4 * 86400000).toISOString() },
+      { id: "b1", text: "Telefongespräch geführt, sehr interessiert, sucht Kapitalanlage mit Fokus auf Steuervorteil. Beispiel-Lead zum Testen, kann jederzeit gelöscht werden.", datum: new Date(jetzt - 4 * 86400000).toISOString() },
     ],
   };
 }
@@ -4262,16 +4279,45 @@ function AnalyseTool({ initialLead, onVorlageEntfernen, accessToken }) {
   );
 }
 
+/** Die Reihenfolge hier ist die Reihenfolge der Spalten im Board und damit
+ * der gesamte Verkaufsprozess: von links nach rechts immer weiter unten im
+ * Trichter. "kontaktiert" wird automatisch gesetzt, sobald die erste
+ * WhatsApp-Nachricht rausgeht. */
 const CRM_STATUS = {
   neu: { label: "Neu", color: GOLD_SOFT },
-  strategiegespraech: { label: "Strategiegespräch", color: "#60A5FA" },
-  objektpraesentation: { label: "Objektpräsentation", color: "#818CF8" },
-  besichtigung: { label: "Besichtigung", color: "#34D399" },
-  reservierung: { label: "Reservierung unterschrieben", color: "#FBBF24" },
-  notartermin: { label: "Notartermin", color: "#A78BFA" },
-  abgeschlossen: { label: "Abgeschlossen", color: "#4ADE80" },
+  kontaktiert: { label: "WhatsApp gesendet", color: "#38BDF8" },
+  telefonat: { label: "Telefongespräch", color: "#60A5FA" },
+  videocall: { label: "Videocall", color: "#818CF8" },
+  ueberlegt: { label: "Überlegt", color: "#FBBF24" },
+  reservierung: { label: "Reservierung", color: "#A78BFA" },
+  verkauft: { label: "Verkauft", color: "#4ADE80" },
   kein_interesse: { label: "Kein Interesse", color: "rgba(255,255,255,0.4)" },
 };
+
+/** Leads aus der Zeit der alten Stufenbezeichnungen auf die aktuellen
+ * umbiegen. Ohne diese Zuordnung würden sie im Board in keiner Spalte mehr
+ * auftauchen, weil gerendert wird, was in CRM_STATUS steht. */
+const CRM_STATUS_ALT = {
+  strategiegespraech: "telefonat",
+  objektpraesentation: "videocall",
+  besichtigung: "ueberlegt",
+  notartermin: "reservierung",
+  abgeschlossen: "verkauft",
+};
+/** Steht für diesen Lead heute oder schon länger eine Wiedervorlage an?
+ * Abgeschlossene und abgesagte Leads bleiben außen vor. */
+function istFaellig(lead) {
+  if (!lead.wiedervorlageAm) return false;
+  const status = normalisiereStatus(lead.crmStatus);
+  if (status === "verkauft" || status === "kein_interesse") return false;
+  return new Date(lead.wiedervorlageAm).setHours(0, 0, 0, 0) <= new Date().setHours(0, 0, 0, 0);
+}
+
+function normalisiereStatus(status) {
+  if (!status) return "neu";
+  if (CRM_STATUS[status]) return status;
+  return CRM_STATUS_ALT[status] || "neu";
+}
 
 /** Ein Zeile-Feld für die Detailansicht – rendert nichts, wenn kein Wert vorliegt. */
 function CRMFeld({ label, wert }) {
@@ -4339,18 +4385,21 @@ function nachrichtenVorlagen(lead, selbstauskunftLink, meineAnalyseLink) {
       hervorgehoben: status === "neu",
       text: `Hallo ${lead.vorname}, hier ist Philipp! 👋 Schön, dass du dich zum Thema Immobilien als Kapitalanlage bei mir gemeldet hast.
 
-Ehrlich gesagt: Die meisten überlegen monatelang, bevor sie überhaupt den ersten Schritt machen – dass du das jetzt einfach angehst, ist schon mal ein richtig guter Start! 💪
+Ehrlich gesagt: Die meisten überlegen monatelang, bevor sie überhaupt den ersten Schritt machen. Dass du das jetzt einfach angehst, ist schon mal ein richtig guter Start! 💪
 
-Am besten zeig ich dir das Ganze einmal in einem Videocall in Ruhe – da rechne ich dir live eine Immobilie durch, erklär dir, wie das funktioniert, und wir gehen in Ruhe deine offenen Fragen durch.
+Am besten machen wir dazu einen kurzen Videocall, ca. 20 Minuten. Mir geht es erstmal nur darum zu verstehen, wo du gerade stehst und was du dir eigentlich aufbauen willst.
 
-Bis dahin kannst du hier gerne schon mal selbst mit deinen Zahlen rumspielen: ${meineAnalyseLink}
+Danach sag ich dir ehrlich, ob und wie ich dir dabei weiterhelfen kann. Wenn es nicht passt, ist das auch völlig in Ordnung.
 
-Wann passt's dir diese Woche? 😊`,
+Bis dahin kannst du hier gerne schon mal selbst mit deinen Zahlen rumspielen:
+${meineAnalyseLink}
+
+Sag mir einfach, wann es dir unter der Woche am besten passt. Morgens, mittags oder abends, ich richte mich nach dir. 😊`,
     },
     {
       id: "selbstauskunft_anfordern",
       label: "Selbstauskunft anfordern",
-      hervorgehoben: !lead.selbstauskunft && status !== "neu",
+      hervorgehoben: !lead.selbstauskunft && status !== "neu" && status !== "kontaktiert",
       text: `Hallo ${lead.vorname}, könntest du bitte noch kurz deine Selbstauskunft für die Finanzierung ausfüllen? ${selbstauskunftLink}`,
     },
     {
@@ -4362,14 +4411,16 @@ Wann passt's dir diese Woche? 😊`,
     {
       id: "nachfassen",
       label: "Nach Gespräch nachfassen",
-      hervorgehoben: status === "strategiegespraech" || status === "objektpraesentation" || status === "besichtigung",
-      text: `Hallo ${lead.vorname}, ich wollte kurz nachfragen, wie's bei dir aussieht – gibt's noch offene Fragen von unserem letzten Gespräch?`,
+      hervorgehoben: status === "kontaktiert" || status === "telefonat" || status === "videocall" || status === "ueberlegt",
+      text: `Hallo ${lead.vorname}, ich wollte mich kurz nochmal melden, nicht dass meine Nachricht bei dir untergegangen ist.
+
+Steht das Thema bei dir noch an? Wenn ja, sag mir einfach, wann dir diese Woche ein kurzer Videocall passt. Und falls es gerade nicht passt, sag auch das gerne ganz offen, dann melde ich mich nicht weiter.`,
     },
     {
       id: "reservierung",
       label: "Glückwunsch zur Reservierung",
       hervorgehoben: status === "reservierung",
-      text: `Hallo ${lead.vorname}, super, dass die Reservierung jetzt unterschrieben ist! Als nächstes kümmern wir uns um den Notartermin – ich melde mich dazu in Kürze bei dir.`,
+      text: `Hallo ${lead.vorname}, super, dass die Reservierung steht! Als Nächstes kümmern wir uns um den Notartermin, dazu melde ich mich in Kürze bei dir.`,
     },
   ];
 }
@@ -4383,6 +4434,21 @@ function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysiere
   const [analyseLinkKopiert, setAnalyseLinkKopiert] = useState(false);
   const kaufplan = useMemo(() => (lead.zielrente ? baueKaufplan(lead.zielrente) : null), [lead.zielrente]);
   const aktuellerStatus = lead.crmStatus || "neu";
+
+  /** Was beim Absenden einer WhatsApp-Nachricht am Lead passieren soll:
+   * Kontaktdatum setzen, aus "Neu" eine Stufe weiterrücken und, falls noch
+   * keine Wiedervorlage steht, automatisch in drei Tagen erinnern. So fällt
+   * niemand hinten runter, der sich nicht von selbst zurückmeldet. */
+  const nachKontakt = () => {
+    const jetzt = new Date();
+    const felder = { letzterKontaktAm: jetzt.toISOString() };
+    if (aktuellerStatus === "neu") felder.crmStatus = "kontaktiert";
+    if (!lead.wiedervorlageAm) {
+      const in3Tagen = new Date(jetzt.getTime() + 3 * 86400000);
+      felder.wiedervorlageAm = in3Tagen.toISOString();
+    }
+    onAktualisieren(felder);
+  };
   const selbstauskunftLink = typeof window !== "undefined"
     ? `${window.location.origin}/analyse#selbstauskunft-${lead.id}` : "";
   const meineAnalyseLink = typeof window !== "undefined"
@@ -4456,7 +4522,8 @@ function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysiere
           </a>
         )}
         {lead.telefon && (
-          <a href={waLink(`Hallo ${lead.vorname}, hier ist ${CONFIG.marke.name} von ${CONFIG.marke.firma}.`)} target="_blank" rel="noopener noreferrer"
+          <a href={waLinkAn(lead.telefon, `Hallo ${lead.vorname}, hier ist ${CONFIG.marke.name} von ${CONFIG.marke.firma}.`)} target="_blank" rel="noopener noreferrer"
+            onClick={nachKontakt}
             className="flex-1 flex items-center justify-center gap-1.5 rounded-xl py-3 text-sm font-medium transition-colors"
             style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${HAIRLINE}`, color: "#fff" }}>
             <MessageCircle size={14} /> WhatsApp
@@ -4483,8 +4550,8 @@ function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysiere
           <div className="text-xs uppercase tracking-widest mb-2.5" style={{ color: "rgba(255,255,255,0.4)" }}>Schnellnachrichten</div>
           <div className="flex flex-col gap-2">
             {[...nachrichtenVorlagen(lead, selbstauskunftLink, meineAnalyseLink)].sort((a, b) => (b.hervorgehoben ? 1 : 0) - (a.hervorgehoben ? 1 : 0)).map((v) => (
-              <a key={v.id} href={waLink(v.text)} target="_blank" rel="noopener noreferrer"
-                onClick={() => onAktualisieren({ letzterKontaktAm: new Date().toISOString() })}
+              <a key={v.id} href={waLinkAn(lead.telefon, v.text)} target="_blank" rel="noopener noreferrer"
+                onClick={nachKontakt}
                 className="flex items-center gap-2 rounded-xl px-3.5 py-3 text-sm font-medium transition-colors"
                 style={v.hervorgehoben
                   ? { background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)", color: GREEN }
@@ -4684,7 +4751,7 @@ function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysiere
                 style={{ background: linkKopiert ? "rgba(52,211,153,0.15)" : GOLD, color: linkKopiert ? GREEN : "#15130B", border: `1px solid ${linkKopiert ? "rgba(52,211,153,0.3)" : "transparent"}` }}>
                 {linkKopiert ? "Link kopiert ✓" : "Link kopieren"}
               </button>
-              <a href={waLink(`Hallo ${lead.vorname}, könntest du bitte noch kurz deine Selbstauskunft für die Finanzierung ausfüllen? ${selbstauskunftLink}`)}
+              <a href={waLinkAn(lead.telefon, `Hallo ${lead.vorname}, könntest du bitte noch kurz deine Selbstauskunft für die Finanzierung ausfüllen? ${selbstauskunftLink}`)}
                 target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-xs font-medium px-3.5 py-2 rounded-full transition-colors"
                 style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${HAIRLINE}`, color: "rgba(255,255,255,0.7)" }}>
@@ -4702,7 +4769,7 @@ function LeadDetail({ lead, onZurueck, onAktualisieren, onLoeschen, onAnalysiere
             style={{ background: "rgba(255,255,255,0.05)", color: analyseLinkKopiert ? GREEN : "rgba(255,255,255,0.5)" }}>
             {analyseLinkKopiert ? "Kopiert ✓" : "Kopieren"}
           </button>
-          <a href={waLink(`Hallo ${lead.vorname}, hier nochmal der Link zu deiner Auswertung: ${meineAnalyseLink}`)}
+          <a href={waLinkAn(lead.telefon, `Hallo ${lead.vorname}, hier nochmal der Link zu deiner Auswertung: ${meineAnalyseLink}`)}
             target="_blank" rel="noopener noreferrer"
             className="font-medium px-2.5 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)" }}>
             WhatsApp
@@ -5074,6 +5141,7 @@ function CRM({ onZurueck, accessToken, onAnalyseAnsehen }) {
   const [tab, setTab] = useState("leads"); // "leads" | "analyse"
   const [leads, setLeads] = useState(null);
   const [suche, setSuche] = useState("");
+  const [nurFaellig, setNurFaellig] = useState(false);
   const [aktivId, setAktivId] = useState(null);
   const [ladeFehler, setLadeFehler] = useState(false);
   const [analyseVorlage, setAnalyseVorlage] = useState(null);
@@ -5115,8 +5183,13 @@ function CRM({ onZurueck, accessToken, onAnalyseAnsehen }) {
         (l.telefon || "").includes(q) || (l.email || "").toLowerCase().includes(q)
       );
     }
+    if (nurFaellig) liste = liste.filter(istFaellig);
     return liste;
-  }, [leads, suche]);
+  }, [leads, suche, nurFaellig]);
+
+  // Anzahl der heute oder überfällig anstehenden Wiedervorlagen, unabhängig
+  // von der Suche – das ist die Zahl, die morgens zählt.
+  const faelligAnzahl = useMemo(() => (leads || []).filter(istFaellig).length, [leads]);
 
   const spalten = useMemo(() => {
     const gruppen = {};
@@ -5256,6 +5329,23 @@ function CRM({ onZurueck, accessToken, onAnalyseAnsehen }) {
               <RefreshCw size={15} color="rgba(255,255,255,0.5)" />
             </button>
           </div>
+
+          {/* Wiedervorlagen, die anstehen. Nur sichtbar, wenn es welche gibt. */}
+          {faelligAnzahl > 0 && (
+            <button onClick={() => setNurFaellig(!nurFaellig)}
+              className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 mb-4 text-sm font-medium transition-colors"
+              style={{
+                background: nurFaellig ? "rgba(201,162,39,0.16)" : "rgba(255,255,255,0.04)",
+                border: `1px solid ${nurFaellig ? "rgba(201,162,39,0.45)" : HAIRLINE}`,
+                color: nurFaellig ? GOLD_SOFT : "rgba(255,255,255,0.7)",
+              }}>
+              <Flame size={14} color={GOLD_SOFT} />
+              {faelligAnzahl} {faelligAnzahl === 1 ? "Wiedervorlage" : "Wiedervorlagen"} fällig
+              <span className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
+                {nurFaellig ? "· alle anzeigen" : "· nur diese anzeigen"}
+              </span>
+            </button>
+          )}
 
           {gefiltert.length === 0 ? (
             <div className="text-center py-16">
